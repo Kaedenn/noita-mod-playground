@@ -1,0 +1,4 @@
+<Mod
+    name="Kaedenn Testing Mod"
+    description="Simple mod to play with modding."
+    request_no_api_restrictions="1" />
