@@ -1,22 +1,16 @@
 -- Kae test mod
 
---[[
---
--- TODO: History recall
---  Add buttons or keybinds for "previous command" and "next command"
---
---]]
-
 dofile("data/scripts/lib/mod_settings.lua")
 
 dofile("mods/kae_test/files/logging.lua")
 dofile("mods/kae_test/files/imguiutil.lua")
 
 KPanel = dofile_once("mods/kae_test/files/gui.lua")
-KPerk = dofile_once("mods/kae_test/files/perk_functions.lua")
-KImGUI = dofile_once("mods/kae_test/files/imgui_helper.lua")
 
-local imgui = load_imgui({version="1.0.0", mod="KaeTest"})
+LibKPanel2 = dofile_once("mods/kae_test/files/panel.lua")
+KPanel2 = LibKPanel2:init()
+
+local imgui = load_imgui({version="1.0.0", mod="kae_test"})
 
 local gui_messages = {}
 
@@ -62,6 +56,14 @@ end
 
 function _build_menu_bar_gui()
     if imgui.BeginMenuBar() then
+        local function do_build_menu()
+            if KPanel2 and KPanel2.build_menu then
+                KPanel2:build_menu(imgui)
+            end
+        end
+        local pres, pval = pcall(do_build_menu)
+        if not pres then add_msg(("do_build('%s')"):format(pval)) end
+
         if imgui.BeginMenu("Actions") then
             local mstr = ifelse(kae_logging(), "Disable", "Enable")
             if imgui.MenuItem(mstr .. " Debugging") then
