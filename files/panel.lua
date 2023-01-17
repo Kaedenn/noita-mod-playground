@@ -13,6 +13,7 @@
 -- panel.name = "string"   (optional; defaults to panel.id)
 -- panel:init()            (optional)
 -- panel:draw(imgui)       (required)
+-- panel:draw_menu(imgui)  (optional)
 -- panel:configure(table)  (optional)
 --
 -- These entries have the following purpose:
@@ -20,6 +21,7 @@
 -- panel.name     string    the external, public name of the panel
 -- panel:init()             one-time initialization before the first draw()
 -- panel:draw(imgui)        draw the panel
+-- panel:draw_menu(imgui)   draw a custom menu at the end of the menubar
 -- panel:configure(config)  set or update any configuration
 --
 -- panel:configure *should* return the current config object, but this is not
@@ -29,22 +31,39 @@
 --]]
 
 dofile_once("data/scripts/lib/utilities.lua")
+dofile_once("mods/kae_test/config.lua")
 
 Panel = {
-    id_default = nil,   -- ID of the "default" panel
+    initialized = false,
     id_current = nil,   -- ID of the "current" panel
     PANELS = { },       -- Table of panel IDs to panel instances
 
-    debug = false,
+    debugging = false,
     debug_lines = {},
 }
 
 -- Built-in panels
 PANELS_NATIVE = {
-    --dofile_once("mods/kae_test/files/panels/eval.lua"),
+    dofile_once("mods/kae_test/files/panels2/eval.lua"),
+    dofile_once("mods/kae_test/files/panels2/summon.lua"),
     --dofile_once("mods/kae_test/files/panels/progress.lua"),
-    --dofile_once("mods/kae_test/files/panels/summon.lua"),
 }
+
+-- Create the panel subsystem. Must be called first, before any other
+-- functions are called.
+function Panel:new()
+    local this = {}
+    setmetatable(this, self)
+    self.__index = self
+
+    for _, pobj in ipairs(PANELS_NATIVE) do
+        self:add(pobj)
+    end
+
+    self.debugging = conf_get(CONF.DEBUG)
+
+    return this
+end
 
 -- Add a new panel
 function Panel:add(panel)
@@ -58,7 +77,7 @@ function Panel:add(panel)
     pobj.init = panel.init or function() end
     pobj.configure = panel.configure or function(config) end
 
-    self.PANELS[pid] = pobj
+    self.PANELS[panel.id] = pobj
 
     if panel.init == nil then
         panel.init = function() end
@@ -67,36 +86,62 @@ function Panel:add(panel)
         panel.configure = function() end
     end
     setmetatable(panel, { __index = panel })
-    self.PANELS[pid] = panel
+    self.PANELS[panel.id] = panel
 end
 
-function Panel:init()
-    local this = {}
-    setmetatable(this, self)
-    self.__index = self
+-- Initialize the panel subsystem
+-- Must be called after Panel:new()
+function Panel:init(env)
+    for pid, pobj in pairs(self.PANELS) do
+        pobj:init(env, self)
+    end
+    self.initialized = true
+end
 
-    for _, pobj in ipairs(PANELS_NATIVE) do
-        self:add(pobj)
-        if self.id_default == nil then
-            self.id_default = pobj.id
+-- DEBUGGING UTILITIES
+
+-- Add a debug line (if debugging is enabled)
+function Panel:d(msg)
+    if self.debugging then
+        table.insert(self.debug_lines, msg)
+    end
+end
+
+-- Add a debug line unless it already exists
+-- Returns true if the insert succeeded, false otherwise
+function Panel:d_unique(msg)
+    for _, message in ipairs(self.debug_lines) do
+        if message == msg then
+            return false
         end
     end
-
-    return this
+    self:d(msg)
+    return true
 end
+
+-- Clear the debug text
+-- Operates by reference just in case a panel has a direct reference to
+-- self.lines.
+function Panel:debug_clear()
+    while #self.debug_lines > 0 do
+        table.remove(self.debug_lines, 1)
+    end
+end
+
+-- END DEBUGGING UTILITIES
 
 function Panel:is(pid) return self.PANELS[pid] ~= nil end
 
 function Panel:get(pid)
-    if self:is(id) then
+    if self:is(pid) then
         return self.PANELS[pid]
     end
     return nil
 end
 
 function Panel:set(pid)
-    if self:is(id) then
-        self.id_current = id
+    if self:is(pid) then
+        self.id_current = pid
     end
 end
 
@@ -112,28 +157,33 @@ function Panel:current()
 end
 
 function Panel:build_menu(imgui)
+    local current = self:current()
+
     if imgui.BeginMenu("Panel") then
-        if imgui.BeginMenu("Logging") then
-            local mstr = self.debug and "Disable" or "Enable"
-            if imgui.MenuItem(mstr .. " Debugging") then
-                self.debug = not self.debug
+        if self.debugging then
+            if imgui.MenuItem("Disable Debugging") then
+                self.debugging = false
+                conf_set(CONF.DEBUG, self.debugging)
             end
-
-            if imgui.MenuItem("Clear") then
-                self.debug_lines = {}
+        else
+            if imgui.MenuItem("Enable Debugging") then
+                self.debugging = true
+                conf_set(CONF.DEBUG, self.debugging)
             end
-
-            if imgui.MenuItem("Close") then
-                ModSettingSetNextValue("kae_test.enable", false, false)
-            end
-            imgui.EndMenu()
         end
+
+        if imgui.MenuItem("Clear") then
+            self.debug_lines = {}
+        end
+
+        if imgui.MenuItem("Close") then
+            conf_set(CONF.ENABLE, false)
+        end
+
+        imgui.Separator()
 
         for pid, pobj in pairs(self.PANELS) do
             local mstr = pobj.name
-            if pid == self.id_default then
-                mstr = mstr .. " [D]"
-            end
             if pid == self.id_current then
                 mstr = mstr .. " [*]"
             end
@@ -142,90 +192,36 @@ function Panel:build_menu(imgui)
             end
         end
 
-        if imgui.MenuItem("Clear") then
-            self:reset()
+        imgui.Separator()
+
+        if current ~= nil then
+            if imgui.MenuItem("Return") then
+                self:reset()
+            end
         end
 
         imgui.EndMenu()
     end
+
+    if current ~= nil then
+        if current.draw_menu ~= nil then
+            current:draw_menu(imgui)
+        end
+    end
+
 end
 
 function Panel:draw(imgui)
-    -- TODO
- 
-    if self.debug then
-        for _, line in ipairs(debug_lines) do
-            imgui.Text(line)
-        end
+
+    local current = self:current()
+    if current ~= nil then
+        current:draw(imgui)
     end
-end
 
--- Public: True if a panel exists with the given id
-function is_panel(id) return PANELS[id] ~= nil end
-
--- Public: Get the current panel's id (nil if none)
-function get_current_id() return panel_current end
-
--- Public: Get the current panel object (nil if none)
-function get_current_panel()
-    local pid = get_current_id()
-    if pid ~= nil and is_panel(pid) then
-        return PANELS[pid]
-    end
-    return nil
-end
-
--- Public: Set the current panel to the one with the given id
-function set_current_id(id)
-    if is_panel(id) then
-        panel_current = id
-        return true
-    end
-    return false
-end
-
--- Public: Add a new panel object, handling default and optional values
-function add_panel(pdef)
-    local panel_id = pdef.id or error("missing 'id' field")
-    local panel_name = pdef.name or panel_id
-    local panel_init = pdef.init or function() end
-    local panel_draw = pdef.draw or error("missing 'draw' field")
-    local panel_configure = pdef.configure or function(config) end
-
-    PANELS[panel_id] = {
-        id = panel_id,
-        name = panel_name,
-        init = panel_init,
-        draw = panel_draw,
-        configure = panel_configure,
-        initialized = false,
-    }
-end
-
--- Public: Build the panel menu. Assumes BeginMenuBar has already been called.
-function build_panel_menu(imgui)
-    if imgui.BeginMenu("Panels") then
-        for panel_id, panel in pairs(PANELS) do
-            if imgui.MenuItem(panel.name or panel_id) then
-                set_current_id(panel_id)
-            end
+    if self.debugging then
+        for _, line in ipairs(self.debug_lines) do
+            imgui.Text("DBG: " .. line)
         end
-        if imgui.MenuItem("Main") then
-            panel_current = nil
-        end
-        imgui.EndMenu()
-    end
-end
-
--- Public: Draw the current panel
-function draw_panel(imgui, ...)
-    local pid = get_current_panel()
-    if pid ~= nil and is_panel(pid) then
-        pobj = PANELS[pid]
-        if not pobj.initialized then
-            pobj.init(_G)
-        end
-        pobj.draw(imgui, _G)
     end
 end
 

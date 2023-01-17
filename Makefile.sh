@@ -104,11 +104,8 @@ checked() { # command...
 # Compare two directories. Returns 1 on differences.
 compare_mods() { # local remote
   local diff_args=(${DIFF_ARGS[@]})
-  if [[ "${#diff_args[@]}" != "${#DIFF_ARGS[@]}" ]]; then
-    error "${#diff_args[@]} not ${#DIFF_ARGS[@]}"
-    exit 2
-  fi
-  diff_args+=(-x "*.tar.gz")
+  diff_args+=(-x "$(basename "$0")") # because this script isn't required
+  diff_args+=(-x "*.tar.gz")         # because backups
   if [[ -z "${DEBUG:-}" ]]; then
     diff_args+=("-q")
   fi
@@ -249,6 +246,7 @@ if [[ "$ACTION" == "cp" ]]; then
 
   # Deploy this mod to the destination directory
   if dry checked rm -r "$DEST_DIR"; then
+    mkdir "$DEST_DIR" 2>/dev/null
     if dry checked cp -r "$SELF/*" "$DEST_DIR"; then
       info "Done"
     fi
