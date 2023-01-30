@@ -21,6 +21,13 @@ mod_settings = {
         scope = MOD_SETTING_SCOPE_RUNTIME,
     },
     {
+        id = "nav",
+        ui_name = "Enable Nav Inputs",
+        ui_description = "Uncheck this to prevent the UI from stealing keyboard inputs",
+        value_default = true,
+        scope = MOD_SETTING_SCOPE_RUNTIME,
+    },
+    {
         id = "debug",
         ui_name = "Enable Debugging",
         ui_description = "Enable debugging output",

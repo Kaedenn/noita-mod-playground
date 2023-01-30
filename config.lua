@@ -6,6 +6,7 @@ MOD_ID = "kae_test"
 CONF = {
     ENABLE = "enable",  -- should the UI be drawn?
     DEBUG = "debug",    -- is debugging enabled?
+    NAV_INPUTS = "nav", -- are nav inputs handled?
 }
 
 function conf_get(key)

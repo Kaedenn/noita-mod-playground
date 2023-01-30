@@ -30,6 +30,11 @@
 -- Panels are allowed to have whatever else they desire in their panel table.
 --]]
 
+--[[ TODO:
+-- Save current panel in game Globals
+-- Scrollable output text
+--]]
+
 dofile_once("data/scripts/lib/utilities.lua")
 dofile_once("mods/kae_test/config.lua")
 
@@ -38,15 +43,15 @@ Panel = {
     id_current = nil,   -- ID of the "current" panel
     PANELS = { },       -- Table of panel IDs to panel instances
 
-    debugging = false,
-    debug_lines = {},
+    debugging = false,  -- true if debugging is active/enabled
+    lines = {},         -- lines displayed below the panel
 }
 
 -- Built-in panels
 PANELS_NATIVE = {
-    dofile_once("mods/kae_test/files/panels2/eval.lua"),
-    dofile_once("mods/kae_test/files/panels2/summon.lua"),
-    --dofile_once("mods/kae_test/files/panels/progress.lua"),
+    dofile_once("mods/kae_test/files/panels/eval.lua"),
+    dofile_once("mods/kae_test/files/panels/summon.lua"),
+    --dofile_once("mods/kae_test/files/panels_old/progress.lua"),
 }
 
 -- Create the panel subsystem. Must be called first, before any other
@@ -98,19 +103,17 @@ function Panel:init(env)
     self.initialized = true
 end
 
--- DEBUGGING UTILITIES
-
 -- Add a debug line (if debugging is enabled)
 function Panel:d(msg)
     if self.debugging then
-        table.insert(self.debug_lines, msg)
+        table.insert(self.lines, ("DBG: %s"):format(msg))
     end
 end
 
 -- Add a debug line unless it already exists
 -- Returns true if the insert succeeded, false otherwise
 function Panel:d_unique(msg)
-    for _, message in ipairs(self.debug_lines) do
+    for _, message in ipairs(self.lines) do
         if message == msg then
             return false
         end
@@ -119,16 +122,18 @@ function Panel:d_unique(msg)
     return true
 end
 
--- Clear the debug text
--- Operates by reference just in case a panel has a direct reference to
--- self.lines.
-function Panel:debug_clear()
-    while #self.debug_lines > 0 do
-        table.remove(self.debug_lines, 1)
-    end
+-- Add a line
+function Panel:p(msg)
+    table.insert(self.lines, msg)
 end
 
--- END DEBUGGING UTILITIES
+-- Clear the text. Operates by reference just in case a panel has a
+-- direct reference to self.lines.
+function Panel:text_clear()
+    while #self.lines > 0 do
+        table.remove(self.lines, 1)
+    end
+end
 
 function Panel:is(pid) return self.PANELS[pid] ~= nil end
 
@@ -173,7 +178,7 @@ function Panel:build_menu(imgui)
         end
 
         if imgui.MenuItem("Clear") then
-            self.debug_lines = {}
+            self.lines = {}
         end
 
         if imgui.MenuItem("Close") then
@@ -218,10 +223,8 @@ function Panel:draw(imgui)
         current:draw(imgui)
     end
 
-    if self.debugging then
-        for _, line in ipairs(self.debug_lines) do
-            imgui.Text("DBG: " .. line)
-        end
+    for _, line in ipairs(self.lines) do
+        imgui.Text(line)
     end
 end
 

@@ -28,9 +28,9 @@ dofile_once("data/scripts/lib/utilities.lua")
 
 -- Built-in panels
 PANELS_NATIVE = {
-    dofile_once("mods/kae_test/files/panels/eval.lua"),
-    dofile_once("mods/kae_test/files/panels/progress.lua"),
-    dofile_once("mods/kae_test/files/panels/summon.lua"),
+    dofile_once("mods/kae_test/files/panels_old/eval.lua"),
+    dofile_once("mods/kae_test/files/panels_old/progress.lua"),
+    dofile_once("mods/kae_test/files/panels_old/summon.lua"),
 }
 
 -- Table of all known panels

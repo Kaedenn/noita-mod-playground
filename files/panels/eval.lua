@@ -1,297 +1,244 @@
 --[[
--- "Eval" Panel
+-- The "Eval" Panel: Execute arbitrary code
 --
--- Configuration:
---      indent="string"     Set indent to string
---      indent=number       Set indent to the number of spaces
---      histmax=number      Set the maximum history size to number
---      histmax=-1          Set the maximum history size to unlimited
---          HISTMAX_UNLIMITED
---      histmax=0           Disable storing history
---          HISTMAX_DISABLED
---      histignore="term"   Configure commands to ignore when adding history
---          "="         Clear histignore
---          "=CMD"      Clear histignore and add CMD as its only entry
---          "+CMD"      Add CMD if it doesn't already exist
---          "-CMD"      Remove CMD; successful even when CMD isn't present
---          "CMD"       Equivalent to "+CMD"
---      ignorespace=boolean If true, ignore commands starting with a space
---      ignoredupes=boolean If true, prevent duplicate history entries
+-- This panel implements a simple (currently line-based) Lua console for
+-- executing arbitrary code.
 --]]
 
--- TODO: History recall
-
 dofile_once("data/scripts/lib/utilities.lua")
-dofile_once("mods/kae_test/files/functions.lua")
+dofile("mods/kae_test/files/imguiutil.lua")
 
-HISTMAX_UNLIMITED = -1      -- no limit on history recall
-HISTMAX_DISABLED = 0        -- disable history recall
+--[[ TODO:
+-- Proper history traversal on up/down arrow keys
+--]]
 
-CONFIG = {
-    indent = "  ",
-    debug = false,
-    histmax = HISTMAX_UNLIMITED,
-    histcontrol = {
-        histignore = {},
-        ignorespace = false,
-        ignoredupes = false,
-        erasedupes = false,
-    }
-}
-TEXT_SIZE = 256
-
-local lines = {}
-local eval_input_text = ""
-
-local command_history = {}
-local command_history_pos = 0
-
-local function eval_with_env(code, env)
-    if env == nil then env = {} end
-    local cresult, cerror = load(code)
-    if type(cresult) == "function" then
-        local code_func = setfenv(cresult, setmetatable(env, { __index = _G }));
-        local presult, pvalue = xpcall(code_func, on_error)
-        return cresult, cerror, presult, perror
-    end
-    return cresult, cerror, nil, nil
-end
-
-function add_line(line)
-    table.insert(lines, line)
-end
-
-function mdebug(msg)
-    if CONFIG.debug then
-        add_line(("D: %s"):format(msg))
-    end
-end
-
-function on_error(msg)
-    add_line(debug.traceback())
-    if msg then
-        add_line(("E: %s"):format(msg))
-    end
-end
-
-function count_table(tbl, entry)
-    local ecount = 0
-    for _, value in ipairs(tbl) do
-        if value == entry then
-            ecount = ecount + 1
-        end
-    end
-    return ecount
-end
-
-function count_history(command) return count_table(command_history, command) end
-
-function draw_lines(imgui)
-    local indent = CONFIG.indent or "  "
-    imgui.Text(("Lines: %d"):format(#lines))
-    for idx, entry in ipairs(lines) do
-        if type(entry) == "table" then
-            for lnum, line in ipairs(entry) do
-                imgui.Text(("%s%s"):format(indent, line))
-            end
-        else
-            imgui.Text(("%s"):format(entry))
-        end
-    end
-end
-
-function add_history(command)
-    local hcon = CONFIG.histcontrol
-    local ignore = false
-    if CONFIG.histmax == HISTMAX_DISABLED then
-        ignore = true
-    elseif CONFIG.histmax ~= HISTMAX_UNLIMITED and #command_history >= CONFIG.histmax then
-        ignore = true
-    elseif hcon and hcon.ignorespace and command:match("^ ") then
-        ignore = true
-    elseif hcon and hcon.histignore and count_table(hcon.histignore, command) > 0 then
-        ignore = true
-    elseif hcon and hcon.ignoredupes and count_history(command) > 0 then
-        if hcon.erasedupes then
-            while table.remove(command_history, command) == command do end
-        else
-            ignore = true
-        end
-    end
-
-    if not ignore then
-        table.insert(command_history, command)
-        command_history_pos = #command_history
-    end
-end
-
-function history_recall_previous()
-    if #command_history == 0 then
-        return nil
-    end
-
-    command_history_pos = clamp(command_history_pos - 1, 1, #command_history)
-    return command_history[command_history_pos]
-end
-
-function history_recall_next()
-    if #command_history == 0 then
-        return nil
-    end
-
-    command_history_pos = clamp(command_history_pos + 1, 1, #command_history)
-    return command_history[command_history_pos]
-end
-
-function history_recall_current()
-    if #command_history == 0 or command_history_pos == 0 then
-        return nil
-    end
-
-    return command_history[command_history_pos]
-end
-
--- Required function: initialize this panel
-function init(host_env)
-    add_line(("init('%s')"):format(host_env))
-end
-
--- Required function: draw this panel (assumes imgui.Begin() was called)
-function draw(imgui, host_env)
-    imgui.Text("Eval"); imgui.SameLine()
-
-    local ret = false
-    ret, eval_input_text = imgui.InputText("", eval_input_text, TEXT_SIZE)
-
-    if imgui.Button("Run") then
-        table.insert(command_history, eval_input_text)
-        command_history_pos = #command_history
-
-        mdebug(("exec: %q"):format(eval_input_text))
-        local cresult, cerror = load(eval_input_text)
-        mdebug(("load: r=%s e=%s"):format(cresult, cerror))
-        if type(cresult) == "function" then
-            local presult, pvalue = xpcall(cresult, on_error)
-            mdebug(("xpcall(...): r=%s v=%s"):format(presult, pvalue))
-            if presult then
-                add_line(tostring(pvalue))
-            else
-                add_line(("E: value[%s] %s not function"):format(type(pvalue), pvalue))
-            end
-        else
-            add_line(("E: load result=%s error=%s"):format(cresult, cerror))
-        end
-    end
-    imgui.SameLine()
-    if imgui.Button("Clear") then
-        -- Use table.remove as to keep the panel._.lines consistent
-        while #lines > 0 do table.remove(lines) end
-    end
-
-    local recall_value = nil
-    if imgui.Button("Prior") then recall_value = history_recall_previous() end
-    imgui.SameLine()
-    if imgui.Button("Next") then recall_value = history_recall_next() end
-    imgui.SameLine()
-    imgui.Text("History recall")
-    if recall_value ~= nil then
-        eval_input_text = recall_value
-    end
-
-    for _, line_rec in ipairs(lines) do
-        if type(line_rec) == "table" then
-            for lnr, line in ipairs(line_rec) do
-                imgui.Text(line)
-            end
-        else
-            imgui.Text(line_rec)
-        end
-    end
-
-end
-
-function _parse_flag(value)
-    if #value == 0 then return true end
-    return as_boolean(value)
-end
-
-function _apply_config(key, val)
-    local value = val
-    if key == "debug" then
-        CONFIG.debug = _parse_flag(value)
-    elseif key == "indent" then
-        if type(value) == "number" then
-            value = string.rep(" ", value)
-        elseif type(value) ~= "string" then
-            value = tostring(value)
-        end
-        CONFIG.indent = value
-    elseif key == "histmax" then
-        if type(value) ~= "number" then
-            value = tonumber(value)
-        end
-        CONFIG.histmax = value
-    elseif key:match("histignore") then
-        if type(value) ~= "string" then
-            value = tostring(value)
-        end
-        local action = value:sub(1, 1)
-        local command = value:sub(2)
-        if action == '-' then
-            table.remove(CONFIG.histcontrol.histignore, command)
-        else
-            if action == '=' then
-                while #CONFIG.histcontrol.histignore > 0 do
-                    table.remove(CONFIG.histcontrol.histignore)
-                end
-            elseif action ~= "+" then -- no action; assume '+'
-                command = value
-            end
-            if count_table(CONFIG.histcontrol.histignore, command) == 0 then
-                table.insert(CONFIG.histcontrol.histignore, command)
-            end
-        end
-    elseif key:match("ignorespace") or key:match("ignoreboth") then
-        local ignore = _parse_flag(value)
-        if ignore ~= nil then
-            CONFIG.histcontrol.ignorespace = ignore
-        end
-    elseif key:match("ignoredupes") or key:match("ignoreboth") then
-        local ignore = _parse_flag(value)
-        if ignore ~= nil then
-            CONFIG.histcontrol.ignoredupes = ignore
-        end
-    elseif key:match("erasedupes") then
-        local erase = _parse_flag(value)
-        if erase ~= nil then
-            CONFIG.histcontrol.erasedupes = erase
-        end
-    end
-end
-
--- Required function: set or update this panel's configuration
-function configure(config)
-    for key, value in pairs(config) do
-        _apply_config(key, value)
-    end
-    return CONFIG
-end
-
-return {
+--[[ The panel object. This file must return this object. ]]
+EvalPanel = {
     id = "eval",
     name = "Eval",
-    init = init,
-    draw = draw,
-    configure = configure,
-    _ = {
-        CONFIG = CONFIG,
-        lines = lines,
-        command_history = command_history,
-        add_history = add_history,
-        history_recall_previous = history_recall_previous,
-        history_recall_next = history_recall_next,
-        history_recall_current = history_recall_current,
-    }
+    config = {
+        size = 256,     -- size of the input box
+        show_keys = false,  -- should we display key events?
+    },
+    last_error = {nil, nil}, -- most recent error
+    host = nil,     -- reference to the controlling Panel class
+    env = {},       -- persistent environment for arbitrary storage
+    code = "",      -- current value of the code input box
+
+    history = {},   -- table of past commands
+    histindex = 0,  -- selected history index for traversal
 }
 
--- vim: set ts=4 sts=4 sw=4 tw=79:
+function EvalPanel:push_history()
+    if #self.history > 0 then
+        if self.history[#self.history][1] == self.code then
+            return false
+        end
+    end
+    table.insert(self.history, {self.code})
+    self.histindex = #self.history
+    return true
+end
+
+--[[ Execute code
+--  Return value:
+--      parse result    code function, result of load()[1]
+--      parse error     error message, result of load()[2]
+--      eval result     true on success, false on error, nil on parse failure
+--      value           value returned by code; nil on none or error
+--
+-- Errors raised by the code can be obtained via examining self.last_error.
+--]]
+function EvalPanel:eval(code)
+
+    -- Called whenever the code raises error
+    local function code_on_error(errmsg)
+        GamePrint(errmsg)
+        self.host:p(errmsg)
+        self.last_error[1] = errmsg
+        self.last_error[2] = debug.traceback()
+    end
+
+    -- Parse the code string into a function
+    self.host:d(("eval %s"):format(code))
+    local cfunc, cerror = load(code)
+    self.host:d(("cr = %s, ce = %s"):format(cfunc, cerror))
+    if type(cfunc) ~= "function" then
+        return cfunc, cerror, nil, nil
+    end
+
+    -- Inject a temporary print function
+    local real_print = _G.print
+    print = function(...)
+        -- Always call the real print function
+        pcall(real_print, ...)
+        local line = ""
+        local items = {...}
+        for i, item in ipairs(items) do
+            if i ~= 1 then
+                line = line .. "\t"
+            end
+            line = line .. tostring(item)
+        end
+        if #line == 0 then
+            line = "<empty>"
+        end
+        self.host:p(line)
+    end
+
+    local presult, pvalue = nil, nil
+    if type(cfunc) == "function" then
+        _G.self = self
+        self.env.player = get_players()[1]
+        presult, pvalue = xpcall(cfunc, code_on_error)
+        _G.self = nil
+    end
+    print = real_print
+
+    return cfunc, cerror, presult, pvalue
+end
+
+--[[ Initialize this panel ]]
+function EvalPanel:init(environ, host)
+    self.env = environ or {}
+    self.host = host or {}
+    setmetatable(self, { __index = environ or _G })
+    return self
+end
+
+--[[ Draw a custom menu for this panel ]]
+function EvalPanel:draw_menu(imgui)
+    if imgui.BeginMenu(self.name) then
+        if imgui.MenuItem("Copy history") then
+            local all_commands = ""
+            for _, item in ipairs(self.history) do
+                all_commands = all_commands .. item[1] .. "\n"
+            end
+            imgui.SetClipboardText(all_commands)
+        end
+
+        if imgui.MenuItem("Clear history") then
+            self.history = {}
+            self.histindex = 0
+        end
+
+        imgui.Separator()
+
+        if imgui.MenuItem("Key tracker") then
+            self.config.show_keys = not self.config.show_keys
+        end
+        imgui.EndMenu()
+    end
+end
+
+--[[ Draw this panel ]]
+function EvalPanel:draw(imgui)
+    if type(self.code) ~= "string" then
+        self.host:p(("ERROR: self.code is %s '%s' not string"):format(
+            type(self.code), self.code))
+        self.code = ""
+    end
+    -- FIXME: Changes to self.code don't seem to propagate well
+    local ret, code = imgui.InputText("", self.code, self.config.size or 256)
+    if code and code ~= "" then
+        self.code = code
+    end
+
+    local exec_code = false
+    if imgui.Button("Run") then
+        exec_code = true
+    end
+
+    if imgui.IsKeyPressed(imgui.Key.Enter) then
+        exec_code = true
+    end
+
+    if exec_code then
+        self.env.exception = nil
+        self.env.imgui = imgui
+        local cres, cerr, pres, pval = self:eval(self.code, self.env)
+        if self.env.exception ~= nil then
+            self.host:p(("error(): %s"):format(self.env.exception[1]))
+            self.host:p(("error(): %s"):format(self.env.exception[2]))
+        end
+        self:push_history()
+        if cerr ~= nil then
+            self.host:p(("load() error: %s"):format(cerr))
+        elseif pres ~= true then
+            self.host:p(("eval() error: %s"):format(pval))
+        elseif pval ~= nil then
+            self.host:p(tostring(pval))
+        end
+    end
+
+    imgui.SameLine()
+    if imgui.Button("Clear") then
+        self.host:text_clear()
+    end
+
+    imgui.SameLine()
+    if imgui.Button("Clear All") then
+        self.code = ""
+        self.host:text_clear()
+    end
+
+    -- Recall the previous command
+    if imgui.IsKeyPressed(imgui.Key.UpArrow) then
+        if self.histindex > 1 then
+            self.histindex = self.histindex - 1
+            self.code = self.history[self.histindex][1]
+        end
+    end
+
+    -- Recall the next command
+    if imgui.IsKeyPressed(imgui.Key.DownArrow) then
+        if self.histindex < #self.history then
+            self.histindex = self.histindex + 1
+            self.code = self.history[self.histindex][1]
+        end
+    end
+
+    -- Debugging!
+    if self.host.debugging then
+        imgui.Text(("History: %s i=%s"):format(#self.history, self.histindex))
+        for idx, entry in ipairs(self.history) do
+            imgui.Text(("H[%d]: '%s'"):format(idx, entry))
+        end
+        imgui.Text(("self.code = '%s'"):format(self.code))
+    end
+
+    if self.config.show_keys then
+        local keys_pressed = {}
+        local keys_down = {}
+        for _, keyname in ipairs(ImguiKeys) do
+            if keyname ~= "COUNT" then
+                local keycode = imgui.Key[keyname]
+                if imgui.IsKeyPressed(keycode) then
+                    table.insert(keys_pressed, keyname)
+                end
+                if imgui.IsKeyDown(keycode) then
+                    table.insert(keys_down, keyname)
+                end
+            end
+        end
+
+        if #keys_pressed > 0 then
+            imgui.Text("Pressed: " .. table.concat(keys_pressed, " "))
+        end
+
+        if #keys_down > 0 then
+            imgui.Text("Down: " .. table.concat(keys_down, " "))
+        end
+    end
+end
+
+--[[ Apply a configuration table to this panel ]]
+function EvalPanel:configure(config)
+    for key, value in pairs(config) do
+        self.config[key] = value
+    end
+end
+
+return EvalPanel
+
+-- vim: set ts=4 sts=4 sw=4:

@@ -5,9 +5,8 @@ dofile("data/scripts/lib/mod_settings.lua")
 dofile("mods/kae_test/files/logging.lua")
 dofile("mods/kae_test/files/imguiutil.lua")
 
-KPanel = dofile_once("mods/kae_test/files/gui.lua")
-KPanel2Lib = dofile_once("mods/kae_test/files/panel.lua")
-KPanel2 = nil
+KPanelLib = dofile_once("mods/kae_test/files/panel.lua")
+KPanel = nil
 
 local imgui = load_imgui({version="1.0.0", mod="kae_test"})
 
@@ -55,7 +54,7 @@ function get_pos_string(player)
     return pos_string
 end
 
--- Execute code with an optional additional environment object. Returns:
+--[[ Execute code with an optional additional environment object. Returns:
 --      parse result, parse error, eval result, eval error
 --
 -- On parse failure, both eval result and eval error will be nil.
@@ -83,7 +82,7 @@ function eval_code(code, penv)
         return cresult, cerror, presult, pvalue
     end
     return cresult, cerror, nil, nil
-end
+end]]
 
 DrawFuncs = {}
 function add_draw_func(func)
@@ -92,7 +91,6 @@ end
 
 function remove_draw_func(func)
     if DrawFuncs[tostring(func)] ~= nil then
-        -- So, how do we delete a named entry?
         DrawFuncs[tostring(func)] = nil
         return true
     end
@@ -102,19 +100,14 @@ end
 function _build_menu_bar_gui()
     if imgui.BeginMenuBar() then
         local function do_build_menu()
-            if KPanel2 and KPanel2.build_menu then
-                KPanel2:build_menu(imgui)
+            if KPanel and KPanel.build_menu then
+                KPanel:build_menu(imgui)
             end
         end
         local pres, pval = pcall(do_build_menu)
         if not pres then add_msg(("do_build('%s')"):format(pval)) end
 
         if imgui.BeginMenu("Actions") then
-            --local mstr = "Enable"
-            --if kae_logging() then mstr = "Disable" end
-            --if imgui.MenuItem(mstr .. " Debugging") then
-            --    kae_set_logging(not kae_logging())
-            --end
             if imgui.MenuItem("Clear") then
                 gui_messages = {}
             end
@@ -127,12 +120,6 @@ function _build_menu_bar_gui()
         --KPanel.build_panel_menu(imgui, _G)
 
         if imgui.BeginMenu("Support") then
-            --[[if imgui.MenuItem("Dump ImGui") then
-                add_msg("Dumping imgui...")
-                for _, line in ipairs(dump_library(imgui, {})) do
-                    add_msg(line)
-                end
-            end]]
             if imgui.MenuItem("Dump _G") then
                 local keys = {}
                 for k, v in pairs(_G) do
@@ -153,38 +140,20 @@ local eval_input_text = ""
 function _build_gui()
     local player_entity = get_players()[1]
 
-    if KPanel2:current() ~= nil then
+    if KPanel:current() ~= nil then
         local function runner()
-            return KPanel2:draw(imgui)
+            return KPanel:draw(imgui)
         end
         local panel_result, panel_value = pcall(runner)
         if not panel_result then
             imgui.Text(tostring(panel_value))
         end
-    elseif KPanel.get_current_panel() ~= nil then
-        local panel_result, panel_value = pcall(KPanel.draw_panel, imgui, _G)
-        if not panel_result then
-            imgui.Text(tostring(panel_value))
-        end
     else
-        imgui.Text("Eval")
+        --[[imgui.Text("Eval")
         imgui.SameLine()
 
         local ret
         ret, eval_input_text = imgui.InputText("", eval_input_text, TEXT_SIZE)
-        --[[
-        if ret then
-            add_msg(("eval('%s')"):format(str))
-            local result, errmsg = load(str)
-            add_msg(('result = %s, errmsg = %s'):format(result, errmsg))
-            if not errmsg and type(result) == "function" then
-                value = result()
-                add_msg(("value = %s"):format(value))
-            end
-            ret = false
-            str = ""
-        end
-        --]]
         if imgui.Button("Run") then
             local code_env = {}
             debug_msg(("ret = %s, str = '%s'"):format(ret, eval_input_text))
@@ -204,33 +173,13 @@ function _build_gui()
                 -- success
                 add_msg(("%s"):format(pvalue))
             end
-            --[[local cresult, cerror = load(eval_input_text)
-            if type(cresult) == "function" then
-                debug_msg(("compile result: %s (error: %s)"):format(cresult, cerror))
-                local presult, pvalue = xpcall(cresult, on_error)
-                debug_msg(("code success: %s"):format(presult))
-                debug_msg(("value: %s"):format(pvalue))
-                if presult then
-                    add_msg(("%s"):format(pvalue))
-                end
-            else
-                if cresult ~= nil then
-                    add_msg(("error: expected function, got %s, %s"):format(
-                        type(cresult), cresult))
-                end
-                add_msg(("error: %s"):format(cerror))
-            end
-            --]]
         end
 
         imgui.SameLine()
+        ]]
 
         if imgui.Button("Clear") then
             gui_messages = {}
-        end
-
-        if imgui.Button("Get Position") then
-            add_msg(get_pos_string(player_entity))
         end
 
         if imgui.Button("Go West") then
@@ -239,6 +188,7 @@ function _build_gui()
             add_msg(("Teleporting to %s, %s"):format(px, py))
             EntitySetTransform(player_entity, px, py)
         end
+
         imgui.SameLine()
         if imgui.Button("Go East") then
             local px, py, pw, mx = get_player_pos(player_entity)
@@ -247,7 +197,10 @@ function _build_gui()
             EntitySetTransform(player_entity, px, py)
         end
 
-        imgui.Text("Output")
+        imgui.SameLine()
+        if imgui.Button("Get Position") then
+            add_msg(get_pos_string(player_entity))
+        end
 
         for index, entry in ipairs(gui_messages) do
             if type(entry) == "table" then
@@ -274,19 +227,20 @@ function OnWorldInitialized() end
 function OnModPostInit() end
 
 function OnPlayerSpawned(player_entity)
-    if not KPanel2 then
-        KPanel2 = KPanel2Lib:new()
+    if not KPanel then
+        KPanel = KPanelLib:new()
     end
-    if not KPanel2 then
-        add_msg("Failed KPanel2:new()")
-    elseif not KPanel2.initialized then
-        KPanel2:init(_G)
+    if not KPanel then
+        add_msg("Failed KPanel:new()")
+    elseif not KPanel.initialized then
+        KPanel:init(_G)
     end
 end
 
 function OnWorldPostUpdate()
-    local window_flags = imgui.WindowFlags.NoFocusOnAppearing + imgui.WindowFlags.MenuBar + imgui.WindowFlags.NoNavInputs
     if ModSettingGet(CONF_ENABLE) then
+        local window_flags = imgui.WindowFlags.NoFocusOnAppearing + imgui.WindowFlags.MenuBar
+        window_flags = window_flags + imgui.WindowFlags.NoNavInputs
         if imgui.Begin("Kae", nil, window_flags) then
             _build_menu_bar_gui()
             _build_gui()
