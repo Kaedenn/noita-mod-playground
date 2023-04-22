@@ -8,19 +8,22 @@
 dofile_once("data/scripts/lib/utilities.lua")
 dofile("mods/kae_test/files/imguiutil.lua")
 
+EZWand = dofile("mods/kae_test/files/lib/EZWand.lua")
+nxml = dofile("mods/kae_test/files/lib/nxml.lua")
+smallfolk = dofile("mods/kae_test/files/lib/smallfolk.lua")
+
 --[[ TODO:
 -- Proper history traversal on up/down arrow keys
 --]]
 
---[[ The panel object. This file must return this object. ]]
 EvalPanel = {
     id = "eval",
     name = "Eval",
     config = {
-        size = 256,     -- size of the input box
+        --size = 256,         -- size of the input box
         show_keys = false,  -- should we display key events?
     },
-    last_error = {nil, nil}, -- most recent error
+    error = {nil, nil},     -- most recent error
     host = nil,     -- reference to the controlling Panel class
     env = {},       -- persistent environment for arbitrary storage
     code = "",      -- current value of the code input box
@@ -28,6 +31,28 @@ EvalPanel = {
     history = {},   -- table of past commands
     histindex = 0,  -- selected history index for traversal
 }
+
+--[[ Create the "print" function wrapper ]]
+function _make_print_wrapper(evalobj)
+    local real_print = _G.print
+    return function(...)
+        -- Always call the real print function
+        pcall(real_print, ...)
+        pcall(GamePrint, ...)
+        local line = ""
+        local items = {...}
+        for i, item in ipairs(items) do
+            if i ~= 1 then
+                line = line .. "\t"
+            end
+            line = line .. tostring(item)
+        end
+        if #line == 0 then
+            line = "<empty>"
+        end
+        evalobj.host:p(line)
+    end
+end
 
 function EvalPanel:push_history()
     if #self.history > 0 then
@@ -47,7 +72,7 @@ end
 --      eval result     true on success, false on error, nil on parse failure
 --      value           value returned by code; nil on none or error
 --
--- Errors raised by the code can be obtained via examining self.last_error.
+-- Errors raised by the code can be obtained via examining self.error.
 --]]
 function EvalPanel:eval(code)
 
@@ -55,9 +80,11 @@ function EvalPanel:eval(code)
     local function code_on_error(errmsg)
         GamePrint(errmsg)
         self.host:p(errmsg)
-        self.last_error[1] = errmsg
-        self.last_error[2] = debug.traceback()
+        self.error[1] = errmsg
+        self.error[2] = debug.traceback()
     end
+
+    self.env.player = get_players()[1]
 
     -- Parse the code string into a function
     self.host:d(("eval %s"):format(code))
@@ -67,34 +94,31 @@ function EvalPanel:eval(code)
         return cfunc, cerror, nil, nil
     end
 
-    -- Inject a temporary print function
-    local real_print = _G.print
-    print = function(...)
-        -- Always call the real print function
-        pcall(real_print, ...)
-        local line = ""
-        local items = {...}
-        for i, item in ipairs(items) do
-            if i ~= 1 then
-                line = line .. "\t"
+    -- Apply a custom environment
+    local env = setmetatable({
+        ["print"] = _make_print_wrapper(self),
+        ["self"] = self,
+        ["env"] = self.env,
+        ["host"] = self.host,
+        ["code"] = code,
+    }, {
+        __index = function(tbl, key)
+            if rawget(tbl, key) ~= nil then
+                return rawget(tbl, key)
             end
-            line = line .. tostring(item)
+            return rawget(_G, key)
+        end,
+        __newindex = function(tbl, key, value)
+            if rawget(tbl, key) ~= nil then
+                rawset(tbl, key, value)
+            else
+                rawset(_G, key, value)
+            end
         end
-        if #line == 0 then
-            line = "<empty>"
-        end
-        self.host:p(line)
-    end
-
+    })
+    local func = setfenv(cfunc, env)
     local presult, pvalue = nil, nil
-    if type(cfunc) == "function" then
-        _G.self = self
-        self.env.player = get_players()[1]
-        presult, pvalue = xpcall(cfunc, code_on_error)
-        _G.self = nil
-    end
-    print = real_print
-
+    presult, pvalue = xpcall(func, code_on_error)
     return cfunc, cerror, presult, pvalue
 end
 
@@ -124,7 +148,9 @@ function EvalPanel:draw_menu(imgui)
 
         imgui.Separator()
 
-        if imgui.MenuItem("Key tracker") then
+        local kt_enable = "Enable"
+        if self.config.show_keys then kt_enable = "Disable" end
+        if imgui.MenuItem(kt_enable .. " key tracker") then
             self.config.show_keys = not self.config.show_keys
         end
         imgui.EndMenu()
@@ -138,25 +164,38 @@ function EvalPanel:draw(imgui)
             type(self.code), self.code))
         self.code = ""
     end
-    -- FIXME: Changes to self.code don't seem to propagate well
-    local ret, code = imgui.InputText("", self.code, self.config.size or 256)
+    --local ret, code = imgui.InputText("", self.code, self.config.size or 256)
+    local line_height = imgui.GetTextLineHeight()
+    local ret, code = imgui.InputTextMultiline(
+        "##Input",
+        self.code,
+        -line_height * 4,
+        line_height * 3,
+        imgui.InputTextFlags.EnterReturnsTrue
+    )
     if code and code ~= "" then
         self.code = code
     end
 
-    local exec_code = false
+    local exec_code = ret or false
     if imgui.Button("Run") then
         exec_code = true
     end
 
-    if imgui.IsKeyPressed(imgui.Key.Enter) then
+    imgui.SameLine()
+    if imgui.Button("Eval") then
         exec_code = true
+        code = ("return (%s)"):format(self.code)
     end
+
+    --[[if imgui.IsKeyPressed(imgui.Key.Enter) then
+        exec_code = true
+    end]]
 
     if exec_code then
         self.env.exception = nil
         self.env.imgui = imgui
-        local cres, cerr, pres, pval = self:eval(self.code, self.env)
+        local cres, cerr, pres, pval = self:eval(code, self.env)
         if self.env.exception ~= nil then
             self.host:p(("error(): %s"):format(self.env.exception[1]))
             self.host:p(("error(): %s"):format(self.env.exception[2]))
@@ -182,27 +221,35 @@ function EvalPanel:draw(imgui)
         self.host:text_clear()
     end
 
-    -- Recall the previous command
+    local hist_go = 0
     if imgui.IsKeyPressed(imgui.Key.UpArrow) then
-        if self.histindex > 1 then
-            self.histindex = self.histindex - 1
-            self.code = self.history[self.histindex][1]
-        end
+        hist_go = -1
+    elseif imgui.IsKeyPressed(imgui.Key.DownArrow) then
+        hist_go = 1
+    end
+    imgui.SameLine()
+    if imgui.SmallButton("Prev") then
+        hist_go = -1
+    end
+    imgui.SameLine()
+    if imgui.SmallButton("Next") then
+        hist_go = 1
     end
 
-    -- Recall the next command
-    if imgui.IsKeyPressed(imgui.Key.DownArrow) then
-        if self.histindex < #self.history then
-            self.histindex = self.histindex + 1
-            self.code = self.history[self.histindex][1]
-        end
+    -- Recall the previous command or the next command
+    if hist_go ~= 0 and #self.history ~= 0 then
+        local histindex = self.histindex + hist_go
+        if histindex < 1 then histindex = 1 end
+        if histindex > #self.history then histindex = #self.history end
+        self.histindex = histindex
+        self.code = self.history[self.histindex][1]
     end
 
     -- Debugging!
     if self.host.debugging then
-        imgui.Text(("History: %s i=%s"):format(#self.history, self.histindex))
+        imgui.Text(("History: %s i=%s g=%s"):format(#self.history, self.histindex, hist_go))
         for idx, entry in ipairs(self.history) do
-            imgui.Text(("H[%d]: '%s'"):format(idx, entry))
+            imgui.Text(("H[%d]: [%d]"):format(idx, #entry[1]))
         end
         imgui.Text(("self.code = '%s'"):format(self.code))
     end

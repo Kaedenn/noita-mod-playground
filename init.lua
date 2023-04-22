@@ -4,6 +4,7 @@ dofile("data/scripts/lib/mod_settings.lua")
 
 dofile("mods/kae_test/files/logging.lua")
 dofile("mods/kae_test/files/imguiutil.lua")
+dofile("mods/kae_test/config.lua")
 
 KPanelLib = dofile_once("mods/kae_test/files/panel.lua")
 KPanel = nil
@@ -11,10 +12,6 @@ KPanel = nil
 local imgui = load_imgui({version="1.0.0", mod="kae_test"})
 
 local gui_messages = {}
-
-TEXT_SIZE = 256
-
-CONF_ENABLE = "kae_test.enable"
 
 function add_msg(msg)
     table.insert(gui_messages, msg)
@@ -54,36 +51,6 @@ function get_pos_string(player)
     return pos_string
 end
 
---[[ Execute code with an optional additional environment object. Returns:
---      parse result, parse error, eval result, eval error
---
--- On parse failure, both eval result and eval error will be nil.
---
--- On eval error, obtain the error message and traceback via env.exception:
---      env.exception[1]    error message
---      env.exception[2]    traceback string
-function eval_code(code, penv)
-    local env = penv or {}
-    if env.imgui == nil then env.imgui = imgui end
-
-    local function code_on_error(errmsg)
-        GamePrint(errmsg)
-        add_msg(errmsg)
-        if env then env.exception = {errmsg, debug.traceback()} end
-    end
-
-    debug_msg(("eval %s"):format(code))
-    local cresult, cerror = load(code)
-    debug_msg(("cr = %s, ce = %s"):format(cresult, cerror))
-    if type(cresult) == "function" then
-        local code_func = cresult
-        --local code_func = setfenv(cresult, setmetatable(env, { __index = _G }))
-        local presult, pvalue = xpcall(code_func, code_on_error)
-        return cresult, cerror, presult, pvalue
-    end
-    return cresult, cerror, nil, nil
-end]]
-
 DrawFuncs = {}
 function add_draw_func(func)
     DrawFuncs[tostring(func)] = func
@@ -112,7 +79,7 @@ function _build_menu_bar_gui()
                 gui_messages = {}
             end
             if imgui.MenuItem("Close") then
-                ModSettingSetNextValue(CONF_ENABLE, false, false)
+                conf_set(CONF.ENABLE, false)
             end
             imgui.EndMenu()
         end
@@ -140,7 +107,10 @@ local eval_input_text = ""
 function _build_gui()
     local player_entity = get_players()[1]
 
-    if KPanel:current() ~= nil then
+    if not KPanel then
+        GamePrint("_build_gui: KPanel not defined")
+    end
+    if KPanel and KPanel:current() ~= nil then
         local function runner()
             return KPanel:draw(imgui)
         end
@@ -149,43 +119,15 @@ function _build_gui()
             imgui.Text(tostring(panel_value))
         end
     else
-        --[[imgui.Text("Eval")
-        imgui.SameLine()
-
-        local ret
-        ret, eval_input_text = imgui.InputText("", eval_input_text, TEXT_SIZE)
-        if imgui.Button("Run") then
-            local code_env = {}
-            debug_msg(("ret = %s, str = '%s'"):format(ret, eval_input_text))
-            local cresult, cerror, presult, pvalue = eval_code(eval_input_text, code_env)
-            debug_msg(("cr = %s, ce = %s, pr = %s, pv = %s"):format(
-                cresult, cerror, presult, pvalue))
-            if code_env.exception ~= nil then
-                add_msg(("received exception: %s"):format(code_env.exception[1]))
-            end
-            if cerror ~= nil then
-                -- code parse failure
-                add_msg(("load() error: %s"):format(cerror))
-            elseif presult ~= true then
-                -- code execute failure
-                add_msg(("eval() error: %s"):format(pvalue))
-            else
-                -- success
-                add_msg(("%s"):format(pvalue))
-            end
-        end
-
-        imgui.SameLine()
-        ]]
-
         if imgui.Button("Clear") then
             gui_messages = {}
         end
 
+        imgui.SameLine()
         if imgui.Button("Go West") then
             local px, py, pw, mx = get_player_pos(player_entity)
             px = px - get_world_width()
-            add_msg(("Teleporting to %s, %s"):format(px, py))
+            add_msg(("Teleporting to %s (%s, %s)"):format(pw, px, py))
             EntitySetTransform(player_entity, px, py)
         end
 
@@ -193,7 +135,7 @@ function _build_gui()
         if imgui.Button("Go East") then
             local px, py, pw, mx = get_player_pos(player_entity)
             px = px + get_world_width()
-            add_msg(("Teleporting to %s, %s"):format(px, py))
+            add_msg(("Teleporting to %s (%s, %s)"):format(pw, px, py))
             EntitySetTransform(player_entity, px, py)
         end
 
@@ -222,28 +164,39 @@ function _build_gui()
 
 end
 
-function OnWorldInitialized() end
-
-function OnModPostInit() end
-
-function OnPlayerSpawned(player_entity)
+function init_kpanel()
     if not KPanel then
         KPanel = KPanelLib:new()
     end
     if not KPanel then
         add_msg("Failed KPanel:new()")
+    elseif not KPanel.init then
+        add_msg("Failed KPanel:new(); init not defined")
     elseif not KPanel.initialized then
         KPanel:init(_G)
     end
 end
 
+function OnWorldInitialized()
+end
+
+function OnModPostInit()
+end
+
+function OnPlayerSpawned(player_entity)
+end
+
 function OnWorldPostUpdate()
-    if ModSettingGet(CONF_ENABLE) then
+    init_kpanel()
+    if conf_get(CONF.ENABLE) then
         local window_flags = imgui.WindowFlags.NoFocusOnAppearing + imgui.WindowFlags.MenuBar
         window_flags = window_flags + imgui.WindowFlags.NoNavInputs
         if imgui.Begin("Kae", nil, window_flags) then
-            _build_menu_bar_gui()
-            _build_gui()
+            local res, val
+            res, val = pcall(_build_menu_bar_gui)
+            if not res then GamePrint(tostring(val)) end
+            res, val = pcall(_build_gui)
+            if not res then GamePrint(tostring(val)) end
             imgui.End()
         end
     end
