@@ -1,8 +1,32 @@
 --[[
--- The "Eval" Panel: Execute arbitrary code
---
--- This panel implements a simple (currently line-based) Lua console for
--- executing arbitrary code.
+
+The "Eval" Panel: Execute arbitrary code
+
+This panel implements a simple (currently line-based) Lua console for
+executing arbitrary code.
+
+Features:
+    print(...) will output to the panel, to the game, and to the game's console
+    self.draw is a table of draw functions, called every frame:
+        function my_draw_func(imgui) ... end
+        table.insert(self.draw, my_draw_func)   to add the function
+        table.remove(self.draw, my_draw_func)   to remove the function
+
+Behaviors:
+    This panel permits modifying the global environment. New variables,
+    functions, etc are always stored in the global table. The following
+    variables and functions are implicitly available:
+        print(thing)    print to the panel, the game, the and game console
+        self            reference to the EvalPanel instance
+        env             reference to self.env
+        host            reference to the parent panel controller instance
+        code            code being executed, as a string
+
+Configuration:
+    show_keys:boolean   display keypresses as they happen
+
+Environment:
+    self.env            table for whatever
 --]]
 
 dofile_once("data/scripts/lib/utilities.lua")
@@ -20,17 +44,28 @@ EvalPanel = {
     id = "eval",
     name = "Eval",
     config = {
-        --size = 256,         -- size of the input box
         show_keys = false,  -- should we display key events?
+        histunique = true,  -- should history be kept globally unique?
     },
-    error = {nil, nil},     -- most recent error
-    host = nil,     -- reference to the controlling Panel class
-    env = {},       -- persistent environment for arbitrary storage
-    code = "",      -- current value of the code input box
+    error = {nil, nil}, -- most recent error
+    host = nil,         -- reference to the controlling Panel class
+    env = nil,          -- persistent environment for arbitrary storage
+    code = "",          -- current value of the code input box
 
-    history = {},   -- table of past commands
-    histindex = 0,  -- selected history index for traversal
+    history = {},       -- table of past commands
+    histindex = 0,      -- selected history index for traversal
 }
+
+--[[ Initialize this panel ]]
+function EvalPanel:init(environ, host)
+    self.env = environ or {}
+    self.host = host or {}
+
+    self.env.draw_funcs = {}
+
+    setmetatable(self, { __index = environ or _G })
+    return self
+end
 
 --[[ Create the "print" function wrapper ]]
 function _make_print_wrapper(evalobj)
@@ -95,13 +130,15 @@ function EvalPanel:eval(code)
     end
 
     -- Apply a custom environment
-    local env = setmetatable({
+    local env_table = {
         ["print"] = _make_print_wrapper(self),
         ["self"] = self,
         ["env"] = self.env,
         ["host"] = self.host,
         ["code"] = code,
-    }, {
+        ["imgui"] = self.env.imgui
+    }
+    local env_meta = {
         __index = function(tbl, key)
             if rawget(tbl, key) ~= nil then
                 return rawget(tbl, key)
@@ -109,25 +146,19 @@ function EvalPanel:eval(code)
             return rawget(_G, key)
         end,
         __newindex = function(tbl, key, value)
-            if rawget(tbl, key) ~= nil then
+            if rawget(tbl, key) ~= nil then -- XXX would this ever be true?
                 rawset(tbl, key, value)
             else
                 rawset(_G, key, value)
             end
         end
-    })
+    }
+
+    local env = setmetatable(env_table, env_meta)
     local func = setfenv(cfunc, env)
     local presult, pvalue = nil, nil
     presult, pvalue = xpcall(func, code_on_error)
     return cfunc, cerror, presult, pvalue
-end
-
---[[ Initialize this panel ]]
-function EvalPanel:init(environ, host)
-    self.env = environ or {}
-    self.host = host or {}
-    setmetatable(self, { __index = environ or _G })
-    return self
 end
 
 --[[ Draw a custom menu for this panel ]]
@@ -139,6 +170,7 @@ function EvalPanel:draw_menu(imgui)
                 all_commands = all_commands .. item[1] .. "\n"
             end
             imgui.SetClipboardText(all_commands)
+            self.host:p(("Copied %d commands to clipboard"):format(#self.history))
         end
 
         if imgui.MenuItem("Clear history") then
@@ -148,9 +180,8 @@ function EvalPanel:draw_menu(imgui)
 
         imgui.Separator()
 
-        local kt_enable = "Enable"
-        if self.config.show_keys then kt_enable = "Disable" end
-        if imgui.MenuItem(kt_enable .. " key tracker") then
+        local enable = f_enable(self.config.show_keys)
+        if imgui.MenuItem(enable .. " key tracker") then
             self.config.show_keys = not self.config.show_keys
         end
         imgui.EndMenu()
@@ -178,7 +209,7 @@ function EvalPanel:draw(imgui)
     end
 
     local exec_code = ret or false
-    if imgui.Button("Run") then
+    if imgui.Button("Exec") then
         exec_code = true
     end
 
@@ -238,16 +269,14 @@ function EvalPanel:draw(imgui)
 
     -- Recall the previous command or the next command
     if hist_go ~= 0 and #self.history ~= 0 then
-        local histindex = self.histindex + hist_go
-        if histindex < 1 then histindex = 1 end
-        if histindex > #self.history then histindex = #self.history end
-        self.histindex = histindex
+        self.histindex = clamp(self.histindex + hist_go, 1, #self.history)
         self.code = self.history[self.histindex][1]
     end
 
     -- Debugging!
     if self.host.debugging then
-        imgui.Text(("History: %s i=%s g=%s"):format(#self.history, self.histindex, hist_go))
+        imgui.Text(("History: %s i=%s g=%s"):format(#self.history,
+                self.histindex, hist_go))
         for idx, entry in ipairs(self.history) do
             imgui.Text(("H[%d]: [%d]"):format(idx, #entry[1]))
         end
