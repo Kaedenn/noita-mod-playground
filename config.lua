@@ -4,9 +4,15 @@ dofile("data/scripts/lib/mod_settings.lua")
 MOD_ID = "kae_test"
 
 CONF = {
-    ENABLE = "enable",  -- should the UI be drawn?
-    DEBUG = "debug"     -- is debugging enabled?
+    ENABLE = "enable",      -- should the UI be drawn?
+    OVERLAY = "overloay",   -- should on-screen text be drawn?
+    DEBUG = "debug",        -- is debugging enabled?
 }
+
+function f_enable(curr_value)
+    if curr_value then return "Disable" end
+    return "Enable"
+end
 
 function conf_get(key)
     return ModSettingGet(MOD_ID .. "." .. key)
