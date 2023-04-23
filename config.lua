@@ -5,7 +5,7 @@ MOD_ID = "kae_test"
 
 CONF = {
     ENABLE = "enable",      -- should the UI be drawn?
-    OVERLAY = "overloay",   -- should on-screen text be drawn?
+    OVERLAY = "overlay" ,   -- should on-screen text be drawn?
     DEBUG = "debug",        -- is debugging enabled?
 }
 
