@@ -13,9 +13,8 @@ local imgui = load_imgui({version="1.0.0", mod="kae_test"})
 
 local gui_messages = {}
 
-function add_msg(msg)
-    table.insert(gui_messages, msg)
-end
+function add_msg(msg) table.insert(gui_messages, msg) end
+function prepend_msg(msg) table.insert(gui_messages, 1, msg) end
 
 function debug_msg(msg)
     if kae_logging() then
@@ -42,13 +41,14 @@ end
 
 function get_pos_string(player)
     local px, py, pw, mx = get_player_pos(player)
-    debug_msg(("px=%s py=%s pw=%s mx=%s"):format(px, py, pw, mx))
-    local pos_string = ("x=%.2f y=%.2f"):format(px, py)
-    pos_string = pos_string .. (" pw=%s"):format(pw)
-    if mx and mx ~= px then
-        pos_string = pos_string .. (" local x=%.2f"):format(mx)
+    local bx = math.floor(mx / BiomeMapGetSize())
+    local by = math.floor(py / BiomeMapGetSize())
+    local result = ("x=%.2f y=%.2f (map x=%d y=%d)"):format(px, py, bx, by)
+    if pw ~= 0 then
+        result = result .. (" world=%s"):format(pw)
+        result = result .. (" local x=%.2f"):format(mx)
     end
-    return pos_string
+    return result
 end
 
 DrawFuncs = {}
@@ -103,7 +103,6 @@ function _build_menu_bar_gui()
     end
 end
 
-local eval_input_text = ""
 function _build_gui()
     local player_entity = get_players()[1]
 
@@ -127,7 +126,7 @@ function _build_gui()
         if imgui.Button("Go West") then
             local px, py, pw, mx = get_player_pos(player_entity)
             px = px - get_world_width()
-            add_msg(("Teleporting to %s (%s, %s)"):format(pw, px, py))
+            prepend_msg(("Teleporting to %s (%s, %s)"):format(pw-1, px, py))
             EntitySetTransform(player_entity, px, py)
         end
 
@@ -135,13 +134,13 @@ function _build_gui()
         if imgui.Button("Go East") then
             local px, py, pw, mx = get_player_pos(player_entity)
             px = px + get_world_width()
-            add_msg(("Teleporting to %s (%s, %s)"):format(pw, px, py))
+            prepend_msg(("Teleporting to %s (%s, %s)"):format(pw+1, px, py))
             EntitySetTransform(player_entity, px, py)
         end
 
         imgui.SameLine()
         if imgui.Button("Get Position") then
-            add_msg(get_pos_string(player_entity))
+            prepend_msg(get_pos_string(player_entity))
         end
 
         for index, entry in ipairs(gui_messages) do
