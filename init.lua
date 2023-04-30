@@ -4,6 +4,7 @@ dofile("data/scripts/lib/mod_settings.lua")
 
 dofile("mods/kae_test/files/logging.lua")
 dofile("mods/kae_test/files/imguiutil.lua")
+dofile("mods/kae_test/files/functions.lua")
 dofile("mods/kae_test/config.lua")
 
 KPanelLib = dofile_once("mods/kae_test/files/panel.lua")
@@ -53,15 +54,15 @@ end
 
 DrawFuncs = {}
 function add_draw_func(func)
+    local result = table_has(DrawFuncs, tostring(func))
     DrawFuncs[tostring(func)] = func
+    return result
 end
 
 function remove_draw_func(func)
-    if DrawFuncs[tostring(func)] ~= nil then
-        DrawFuncs[tostring(func)] = nil
-        return true
-    end
-    return false
+    local result
+    DrawFuncs, result = table_without(DrawFuncs, tostring(func))
+    return result
 end
 
 function _build_menu_bar_gui()
@@ -163,19 +164,6 @@ function _build_gui()
 
 end
 
-function init_kpanel()
-    if not KPanel then
-        KPanel = KPanelLib:new()
-    end
-    if not KPanel then
-        add_msg("Failed KPanel:new()")
-    elseif not KPanel.init then
-        add_msg("Failed KPanel:new(); init not defined")
-    elseif not KPanel.initialized then
-        KPanel:init(_G)
-    end
-end
-
 function OnWorldInitialized()
 end
 
@@ -186,11 +174,22 @@ function OnPlayerSpawned(player_entity)
 end
 
 function OnWorldPostUpdate()
-    init_kpanel()
+    local WF = imgui.WindowFlags
+    if not KPanel then
+        KPanel = KPanelLib:new()
+    end
+    if not KPanel then
+        add_msg("Failed KPanel:new()")
+        GamePrint("Failed KPanel:new()")
+    elseif not KPanel.init then
+        add_msg("Failed KPanel:new(); init not defined")
+        GamePrint("Failed KPanel:new(); init not defined")
+    elseif not KPanel.initialized then
+        KPanel:init(_G)
+    end
     if conf_get(CONF.ENABLE) then
-        local window_flags = imgui.WindowFlags.NoFocusOnAppearing + imgui.WindowFlags.MenuBar
-        window_flags = window_flags + imgui.WindowFlags.NoNavInputs
-        if imgui.Begin("Kae", nil, window_flags) then
+        if imgui.Begin("Kae", nil, WF.NoFocusOnAppearing + WF.MenuBar + WF.NoNavInputs)
+        then
             local res, val
             res, val = pcall(_build_menu_bar_gui)
             if not res then GamePrint(tostring(val)) end

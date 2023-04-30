@@ -5,28 +5,38 @@ The "Eval" Panel: Execute arbitrary code
 This panel implements a simple (currently line-based) Lua console for
 executing arbitrary code.
 
-Features:
-    print(...) will output to the panel, to the game, and to the game's console
-    self.draw is a table of draw functions, called every frame:
-        function my_draw_func(imgui) ... end
-        table.insert(self.draw, my_draw_func)   to add the function
-        table.remove(self.draw, my_draw_func)   to remove the function
+Available Functions & Variables:
+  print(thing)    print to the panel, the game, the and game console
+  self            reference to the EvalPanel instance
+  host            reference to the parent panel controller instance
+  env             reference to self.env for arbitrary use
+  code            code being executed, as a string
+  imgui           reference to the ImGui instance, if needed
+
+  "Draw" functions: these functions are called once per frame with the
+  imgui object as its single parameter, _after_ drawing the current
+  panel and feedback text, if any.
+    draw_func(imgui)
+  add_draw_func(function) -> boolean
+    Add a draw function that's called every frame; functions are
+    tracked via tostring(function), and so adding a function more than
+    once will have no effect. Returns true if the function was added
+    (wasn't already present), false otherwise.
+  remove_draw_func(function) -> boolean
+    Remove a draw function; returns true if the function was present,
+    false otherwise.
+
 
 Behaviors:
-    This panel permits modifying the global environment. New variables,
-    functions, etc are always stored in the global table. The following
-    variables and functions are implicitly available:
-        print(thing)    print to the panel, the game, the and game console
-        self            reference to the EvalPanel instance
-        env             reference to self.env
-        host            reference to the parent panel controller instance
-        code            code being executed, as a string
+  This panel permits modifying the global environment. New variables,
+  functions, etc are always stored in the global table. The following
+  variables and functions are implicitly available:
 
 Configuration:
-    show_keys:boolean   display keypresses as they happen
+  show_keys:boolean   display keypresses as they happen
 
 Environment:
-    self.env            table for whatever
+  self.env            table for whatever
 --]]
 
 dofile_once("data/scripts/lib/utilities.lua")
@@ -60,8 +70,6 @@ EvalPanel = {
 function EvalPanel:init(environ, host)
     self.env = environ or {}
     self.host = host or {}
-
-    self.env.draw_funcs = {}
 
     setmetatable(self, { __index = environ or _G })
     return self
