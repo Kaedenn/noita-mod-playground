@@ -34,6 +34,7 @@ Behaviors:
 
 Configuration:
   show_keys:boolean   display keypresses as they happen
+  num_lines:number    number of lines shown by the code input
 
 Environment:
   self.env            table for whatever
@@ -46,8 +47,15 @@ EZWand = dofile("mods/kae_test/files/lib/EZWand.lua")
 nxml = dofile("mods/kae_test/files/lib/nxml.lua")
 smallfolk = dofile("mods/kae_test/files/lib/smallfolk.lua")
 
+-- Stash the environment for restricted functions
+_G_STASH = {}
+for key, val in pairs(_G) do
+    _G_STASH[key] = val
+end
+
 --[[ TODO:
 -- Proper history traversal on up/down arrow keys
+-- Retain access to the "protected" Noita functions
 --]]
 
 EvalPanel = {
@@ -56,6 +64,7 @@ EvalPanel = {
     config = {
         show_keys = false,  -- should we display key events?
         histunique = true,  -- should history be kept globally unique?
+        num_lines = 6,      -- how many lines should the edit window have?
     },
     error = {nil, nil}, -- most recent error
     host = nil,         -- reference to the controlling Panel class
@@ -137,28 +146,29 @@ function EvalPanel:eval(code)
         return cfunc, cerror, nil, nil
     end
 
-    -- Apply a custom environment
+    -- This is the environment visible to the code (in addition to _G)
     local env_table = {
         ["print"] = _make_print_wrapper(self),
         ["self"] = self,
         ["env"] = self.env,
         ["host"] = self.host,
         ["code"] = code,
-        ["imgui"] = self.env.imgui
+        ["imgui"] = self.env.imgui,
+
+        ["player"] = self.env.player,
     }
     local env_meta = {
         __index = function(tbl, key)
             if rawget(tbl, key) ~= nil then
                 return rawget(tbl, key)
             end
-            return rawget(_G, key)
+            if rawget(_G, key) ~= nil then
+                return rawget(_G, key)
+            end
+            return rawget(_G_STASH, key)
         end,
         __newindex = function(tbl, key, value)
-            if rawget(tbl, key) ~= nil then -- XXX would this ever be true?
-                rawset(tbl, key, value)
-            else
-                rawset(_G, key, value)
-            end
+            rawset(tbl, key, value)
         end
     }
 
@@ -175,7 +185,7 @@ function EvalPanel:draw_menu(imgui)
         if imgui.MenuItem("Copy history") then
             local all_commands = ""
             for _, item in ipairs(self.history) do
-                all_commands = all_commands .. item[1] .. "\n"
+                all_commands = all_commands .. item[1] .. "\r\n"
             end
             imgui.SetClipboardText(all_commands)
             self.host:p(("Copied %d commands to clipboard"):format(#self.history))
@@ -192,6 +202,24 @@ function EvalPanel:draw_menu(imgui)
         if imgui.MenuItem(enable .. " key tracker") then
             self.config.show_keys = not self.config.show_keys
         end
+
+        imgui.Separator()
+
+        if imgui.MenuItem("Help") then
+            self.host:p("Exec - executes code as-is")
+            self.host:p("Eval - wraps code in 'return (%s)'")
+            self.host:p("Clear - clears output text")
+            self.host:p("Clear all - clears output text and input box")
+            self.host:p(("self.config.num_lines = %d"):format(self.config.num_lines))
+        end
+
+        if imgui.MenuItem("Show Variables") then
+            self.host:p("var print = function(...)")
+            self.host:p("var self, env, host, imgui")
+            self.host:p("var code = string")
+            self.host:p("var player = number")
+        end
+
         imgui.EndMenu()
     end
 end
@@ -203,13 +231,12 @@ function EvalPanel:draw(imgui)
             type(self.code), self.code))
         self.code = ""
     end
-    --local ret, code = imgui.InputText("", self.code, self.config.size or 256)
     local line_height = imgui.GetTextLineHeight()
     local ret, code = imgui.InputTextMultiline(
         "##Input",
         self.code,
         -line_height * 4,
-        line_height * 3,
+        line_height * self.config.num_lines,
         imgui.InputTextFlags.EnterReturnsTrue
     )
     if code and code ~= "" then
@@ -236,14 +263,20 @@ function EvalPanel:draw(imgui)
         self.env.imgui = imgui
         local cres, cerr, pres, pval = self:eval(code, self.env)
         if self.env.exception ~= nil then
-            self.host:p(("error(): %s"):format(self.env.exception[1]))
-            self.host:p(("error(): %s"):format(self.env.exception[2]))
+            if self.env.exception[1] ~= nil then
+                self.host:p(("error(): %s"):format(self.env.exception[1]))
+            end
+            if self.env.exception[2] ~= nil then
+                self.host:p(("error(): %s"):format(self.env.exception[2]))
+            end
         end
         self:push_history()
         if cerr ~= nil then
             self.host:p(("load() error: %s"):format(cerr))
-        elseif pres ~= true then
+        elseif pres ~= true and pval ~= nil then
             self.host:p(("eval() error: %s"):format(pval))
+        elseif pval == "" then
+            self.host:p("<no output>")
         elseif pval ~= nil then
             self.host:p(tostring(pval))
         end

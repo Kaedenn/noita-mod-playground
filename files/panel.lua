@@ -47,10 +47,13 @@ Panel = {
     lines = {},         -- lines displayed below the panel
 }
 
+Panel.SAVE_KEY = "kae_test.panel"
+
 -- Built-in panels
 PANELS_NATIVE = {
     dofile_once("mods/kae_test/files/panels/eval.lua"),
     dofile_once("mods/kae_test/files/panels/summon.lua"),
+    dofile_once("mods/kae_test/files/panels/info.lua"),
     --dofile_once("mods/kae_test/files/panels_old/progress.lua"),
 }
 
@@ -98,8 +101,15 @@ end
 -- Must be called after Panel:new()
 function Panel:init(env)
     for pid, pobj in pairs(self.PANELS) do
-        pobj:init(env, self)
+        local res, val = pcall(function() pobj:init(env, self) end)
+        if not res then GamePrint(val) end
     end
+    local curr_panel = ModSettingGet(Panel.SAVE_KEY)
+    if self:is(curr_panel) then
+        self:d(("curr := %s (from %s)"):format(curr_panel, Panel.SAVE_KEY))
+        self.id_current = curr_panel
+    end
+
     self.initialized = true
 end
 
@@ -147,6 +157,7 @@ end
 function Panel:set(pid)
     if self:is(pid) then
         self.id_current = pid
+        --ModSettingSetNextValue(Panel.SAVE_KEY, pid, false)
     end
 end
 
@@ -175,6 +186,14 @@ function Panel:build_menu(imgui)
                 self.debugging = true
                 conf_set(CONF.DEBUG, self.debugging)
             end
+        end
+
+        if imgui.MenuItem("Copy") then
+            local all_lines = ""
+            for _, line in ipairs(self.lines) do
+                all_lines = all_lines .. line .. "\r\n"
+            end
+            imgui.SetClipboardText(all_lines)
         end
 
         if imgui.MenuItem("Clear") then

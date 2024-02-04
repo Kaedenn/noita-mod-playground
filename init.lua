@@ -10,7 +10,10 @@ dofile("mods/kae_test/config.lua")
 KPanelLib = dofile_once("mods/kae_test/files/panel.lua")
 KPanel = nil
 
-local imgui = load_imgui({version="1.0.0", mod="kae_test"})
+-- Functions that may or may not be available post-init
+Functions = {}
+
+local imgui = load_imgui({version="1.14.2", mod="kae_test"})
 
 local gui_messages = {}
 
@@ -36,12 +39,18 @@ end
 
 function get_player_pos(player)
     local px, py = EntityGetTransform(player)
-    local pw, mx = check_parallel_pos(px)
-    return px, py, pw, mx
+    if px ~= nil and py ~= nil then
+        local pw, mx = check_parallel_pos(px)
+        return px, py, pw, mx
+    end
+    return nil, nil, nil, nil
 end
 
 function get_pos_string(player)
     local px, py, pw, mx = get_player_pos(player)
+    if px == nil or py == nil then
+        return "x=unknown; y=unknown"
+    end
     local bx = math.floor(mx / BiomeMapGetSize())
     local by = math.floor(py / BiomeMapGetSize())
     local result = ("x=%.2f y=%.2f (map x=%d y=%d)"):format(px, py, bx, by)
@@ -50,6 +59,10 @@ function get_pos_string(player)
         result = result .. (" local x=%.2f"):format(mx)
     end
     return result
+end
+
+function get_aplc_recipes()
+    
 end
 
 DrawFuncs = {}
@@ -119,29 +132,50 @@ function _build_gui()
             imgui.Text(tostring(panel_value))
         end
     else
+        local px, py, pw, mx = get_player_pos(player_entity)
+        local new_pw = nil
+
         if imgui.Button("Clear") then
             gui_messages = {}
         end
 
-        imgui.SameLine()
-        if imgui.Button("Go West") then
-            local px, py, pw, mx = get_player_pos(player_entity)
-            px = px - get_world_width()
-            prepend_msg(("Teleporting to %s (%s, %s)"):format(pw-1, px, py))
-            EntitySetTransform(player_entity, px, py)
-        end
+        if px ~= nil then
+            imgui.SameLine()
+            if imgui.Button("Go West") then
+                new_pw = pw - 1
+            end
 
-        imgui.SameLine()
-        if imgui.Button("Go East") then
-            local px, py, pw, mx = get_player_pos(player_entity)
-            px = px + get_world_width()
-            prepend_msg(("Teleporting to %s (%s, %s)"):format(pw+1, px, py))
-            EntitySetTransform(player_entity, px, py)
+            imgui.SameLine()
+            if imgui.Button("Go East") then
+                new_pw = pw + 1
+            end
+
+            if pw ~= nil and pw ~= 0 then
+                imgui.SameLine()
+                if imgui.Button("Go Main") then
+                    new_pw = 0
+                end
+            end
         end
 
         imgui.SameLine()
         if imgui.Button("Get Position") then
             prepend_msg(get_pos_string(player_entity))
+        end
+
+        if imgui.Button("Alchemy") then
+            dofile("mods/kae_test/files/aplc.lua")
+            local lcc, apc, lcp, app = aplc_get()
+            local lc_str = table.concat(lcc, ", ")
+            local ap_str = table.concat(apc, ", ")
+            add_msg(("LC: %s (%s)"):format(lc_str, lcp))
+            add_msg(("AP: %s (%s)"):format(ap_str, app))
+        end
+
+        if new_pw ~= nil then
+            new_px = mx + new_pw * get_world_width()
+            prepend_msg(("Teleporting to %s (%s, %s)"):format(new_pw, px, py))
+            EntitySetTransform(player_entity, new_px, py)
         end
 
         for index, entry in ipairs(gui_messages) do
@@ -164,9 +198,6 @@ function _build_gui()
 
 end
 
-function OnWorldInitialized()
-end
-
 function OnModPostInit()
 end
 
@@ -186,6 +217,7 @@ function OnWorldPostUpdate()
         GamePrint("Failed KPanel:new(); init not defined")
     elseif not KPanel.initialized then
         KPanel:init(_G)
+        KPanel:set("info")
     end
     if conf_get(CONF.ENABLE) then
         if imgui.Begin("Kae", nil, WF.NoFocusOnAppearing + WF.MenuBar + WF.NoNavInputs)
