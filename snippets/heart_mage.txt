@@ -1,0 +1,5 @@
+x, y = EntityGetTransform(get_players()[1])
+EntityLoad("data/entities/animals/wizard_hearty.xml", x, y-60)
+EntityLoad("data/entities/animals/wizard_returner.xml", x, y-60)
+
+

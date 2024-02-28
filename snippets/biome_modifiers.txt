@@ -1,0 +1,33 @@
+
+biomes = {}
+biome_xml = nxml.parse(ModTextFileGetContent("data/biome/_biomes_all.xml"))
+for _, bdef in ipairs(biome_xml.children) do
+  table.insert(biomes, bdef.attr.biome_filename)
+end
+table.sort(biomes)
+for _, biome_path in ipairs(biomes) do
+  local biome_name = biome_path:match("^data/biome/(.*).xml$")
+  local modifier = BiomeGetValue(biome_path, "mModifierUIDescription")
+  if modifier ~= nil and modifier ~= "" then print(("%s - %s"):format(biome_name, modifier)) end
+end
+
+--------------------------------------------------------------------------------
+
+function biome_get(biome, flag)
+  local biome_filename = "data/biome/" .. biome .. ".xml"
+  return BiomeGetValue(biome_filename, flag)
+end
+
+function runme()
+  dofile("data/scripts/biome_modifiers.lua")
+  local biomes = {}
+  for _, blist in ipairs(biomes) do
+    for _, b in ipairs(blist) do table.insert(biomes, b) end
+  end
+  table.insert(biomes, "fungicave")
+  table.insert(biomes, "wandcave")
+  for _, b in ipairs(biomes) do
+    print(("%s: %s"):format(b, biome_get(b, "mModifierUIDescription")))
+  end
+end
+runme()

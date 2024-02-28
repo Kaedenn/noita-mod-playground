@@ -137,6 +137,11 @@ function Panel:p(msg)
     table.insert(self.lines, msg)
 end
 
+-- Prepend a line
+function Panel:prepend(msg)
+    table.insert(self.lines, 1, msg)
+end
+
 -- Clear the text. Operates by reference just in case a panel has a
 -- direct reference to self.lines.
 function Panel:text_clear()

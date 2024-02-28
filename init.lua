@@ -1,6 +1,6 @@
 -- Kae test mod
 
-dofile("data/scripts/lib/mod_settings.lua")
+dofile_once("data/scripts/lib/mod_settings.lua")
 
 dofile("mods/kae_test/files/logging.lua")
 dofile("mods/kae_test/files/imguiutil.lua")
@@ -59,10 +59,6 @@ function get_pos_string(player)
         result = result .. (" local x=%.2f"):format(mx)
     end
     return result
-end
-
-function get_aplc_recipes()
-    
 end
 
 DrawFuncs = {}

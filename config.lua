@@ -1,11 +1,10 @@
-dofile("data/scripts/lib/utilities.lua")
-dofile("data/scripts/lib/mod_settings.lua")
+dofile_once("data/scripts/lib/utilities.lua")
+dofile_once("data/scripts/lib/mod_settings.lua")
 
 MOD_ID = "kae_test"
 
 CONF = {
     ENABLE = "enable",      -- should the UI be drawn?
-    OVERLAY = "overlay" ,   -- should on-screen text be drawn?
     DEBUG = "debug",        -- is debugging enabled?
 }
 

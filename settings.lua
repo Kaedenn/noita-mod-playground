@@ -1,5 +1,5 @@
-dofile("data/scripts/lib/utilities.lua")
-dofile("data/scripts/lib/mod_settings.lua")
+dofile_once("data/scripts/lib/utilities.lua")
+dofile_once("data/scripts/lib/mod_settings.lua")
 
 dofile_once("mods/kae_test/config.lua")
 
@@ -18,13 +18,6 @@ mod_settings = {
         ui_name = "Enable UI",
         ui_description = "Uncheck this to hide the UI",
         value_default = true,
-        scope = MOD_SETTING_SCOPE_RUNTIME,
-    },
-    {
-        id = "overlay",
-        ui_name = "Enable On-Screen Text",
-        ui_description = "Enable cheatgui-like assistive text",
-        value_default = false,
         scope = MOD_SETTING_SCOPE_RUNTIME,
     },
     {

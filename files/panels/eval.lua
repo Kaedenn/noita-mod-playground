@@ -2,8 +2,7 @@
 
 The "Eval" Panel: Execute arbitrary code
 
-This panel implements a simple (currently line-based) Lua console for
-executing arbitrary code.
+This panel implements a simple Lua console for executing arbitrary code.
 
 Available Functions & Variables:
   print(thing)    print to the panel, the game, the and game console
@@ -17,24 +16,26 @@ Available Functions & Variables:
   imgui object as its single parameter, _after_ drawing the current
   panel and feedback text, if any.
     draw_func(imgui)
+
   add_draw_func(function) -> boolean
     Add a draw function that's called every frame; functions are
     tracked via tostring(function), and so adding a function more than
     once will have no effect. Returns true if the function was added
     (wasn't already present), false otherwise.
+
   remove_draw_func(function) -> boolean
     Remove a draw function; returns true if the function was present,
     false otherwise.
 
+Available Objects:
+  kae             libkae utility library
+  EZWand          easy wand library
+  nxml            small Noita XML parsing library
+  smallfolk       data serialization/deserialization library
 
 Behaviors:
   This panel permits modifying the global environment. New variables,
-  functions, etc are always stored in the global table. The following
-  variables and functions are implicitly available:
-
-Configuration:
-  show_keys:boolean   display keypresses as they happen
-  num_lines:number    number of lines shown by the code input
+  functions, etc are stored in self.env.
 
 Environment:
   self.env            table for whatever
@@ -43,9 +44,10 @@ Environment:
 dofile_once("data/scripts/lib/utilities.lua")
 dofile("mods/kae_test/files/imguiutil.lua")
 
-EZWand = dofile("mods/kae_test/files/lib/EZWand.lua")
-nxml = dofile("mods/kae_test/files/lib/nxml.lua")
-smallfolk = dofile("mods/kae_test/files/lib/smallfolk.lua")
+kae = dofile_once("mods/kae_test/files/lib/libkae.lua")
+EZWand = dofile_once("mods/kae_test/files/lib/EZWand.lua")
+nxml = dofile_once("mods/kae_test/files/lib/nxml.lua")
+smallfolk = dofile_once("mods/kae_test/files/lib/smallfolk.lua")
 
 -- Stash the environment for restricted functions
 _G_STASH = {}
@@ -55,16 +57,18 @@ end
 
 --[[ TODO:
 -- Proper history traversal on up/down arrow keys
--- Retain access to the "protected" Noita functions
 --]]
+
+INPUT_MIN_LINES = 4
 
 EvalPanel = {
     id = "eval",
     name = "Eval",
     config = {
-        show_keys = false,  -- should we display key events?
-        histunique = true,  -- should history be kept globally unique?
-        num_lines = 6,      -- how many lines should the edit window have?
+        show_keys = false,      -- should we display key events?
+        histunique = true,      -- should history be kept globally unique?
+        num_lines = 6,          -- how many lines should the edit window have?
+        show_resize = false,    -- display the resize input element?
     },
     error = {nil, nil}, -- most recent error
     host = nil,         -- reference to the controlling Panel class
@@ -196,6 +200,10 @@ function EvalPanel:draw_menu(imgui)
             self.histindex = 0
         end
 
+        if imgui.MenuItem("Resize input") then
+            self.show_resize = true
+        end
+
         imgui.Separator()
 
         local enable = f_enable(self.config.show_keys)
@@ -209,7 +217,6 @@ function EvalPanel:draw_menu(imgui)
             self.host:p("Exec - executes code as-is")
             self.host:p("Eval - wraps code in 'return (%s)'")
             self.host:p("Clear - clears output text")
-            self.host:p("Clear all - clears output text and input box")
             self.host:p(("self.config.num_lines = %d"):format(self.config.num_lines))
         end
 
@@ -218,6 +225,7 @@ function EvalPanel:draw_menu(imgui)
             self.host:p("var self, env, host, imgui")
             self.host:p("var code = string")
             self.host:p("var player = number")
+            self.host:p(("self.config.num_lines = %d"):format(self.config.num_lines))
         end
 
         imgui.EndMenu()
@@ -231,6 +239,7 @@ function EvalPanel:draw(imgui)
             type(self.code), self.code))
         self.code = ""
     end
+
     local line_height = imgui.GetTextLineHeight()
     local ret, code = imgui.InputTextMultiline(
         "##Input",
@@ -287,25 +296,29 @@ function EvalPanel:draw(imgui)
         self.host:text_clear()
     end
 
+    local hist_go = 0
     imgui.SameLine()
-    if imgui.Button("Clear All") then
-        self.code = ""
-        self.host:text_clear()
+    if imgui.SmallButton("Prev") or imgui.IsKeyPressed(imgui.Key.UpArrow) then
+        hist_go = -1
+    end
+    imgui.SameLine()
+    if imgui.SmallButton("Next") or imgui.IsKeyPressed(imgui.Key.DownArrow) then
+        hist_go = 1
     end
 
-    local hist_go = 0
-    if imgui.IsKeyPressed(imgui.Key.UpArrow) then
-        hist_go = -1
-    elseif imgui.IsKeyPressed(imgui.Key.DownArrow) then
-        hist_go = 1
+    -- If requested, show an input to change the number of lines available
+    if not self.env.temp_num_lines then
+        self.env.temp_num_lines = self.config.num_lines
     end
-    imgui.SameLine()
-    if imgui.SmallButton("Prev") then
-        hist_go = -1
-    end
-    imgui.SameLine()
-    if imgui.SmallButton("Next") then
-        hist_go = 1
+    if self.show_resize then
+        ret, self.env.temp_num_lines = imgui.InputInt("Lines", self.env.temp_num_lines)
+        if self.env.temp_num_lines < INPUT_MIN_LINES then
+            self.env.temp_num_lines = INPUT_MIN_LINES
+        end
+        if imgui.Button("Apply") then
+            self.config.num_lines = self.env.temp_num_lines
+            self.show_resize = false
+        end
     end
 
     -- Recall the previous command or the next command
