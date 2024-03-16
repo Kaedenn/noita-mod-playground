@@ -176,6 +176,8 @@ function EvalPanel:eval(code)
         end
     }
 
+    kae.config.printfunc = env_table["print"]
+
     local env = setmetatable(env_table, env_meta)
     local func = setfenv(cfunc, env)
     local presult, pvalue = nil, nil

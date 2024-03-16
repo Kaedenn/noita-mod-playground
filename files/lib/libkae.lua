@@ -338,6 +338,21 @@ TODO
 
 kae = {
 
+  config = {
+    printfunc = print,
+    table_format = function(varname, key, value)
+      return ("%s.%s = %s"):format(varname, key, value)
+    end,
+    array_format = function(varname, index, value)
+      return ("%s[%d] = %s"):format(varname, index, value)
+    end,
+  },
+
+  --[[ Apply configuration that alters default behavior below ]]
+  configure = function (name, value)
+    kae.config[name] = value
+  end,
+
   --[[ Generate a range of numbers from start..stop by step, inclusive ]]
   range = function (...)
     local args = kae.table.pack(...)
@@ -642,10 +657,8 @@ kae = {
       local conf = config or {}
       local name = conf.name or "table"
       local pairfunc = conf.iprint and ipairs or pairs
-      local printfunc = conf.printfunc or print
-      local formatfunc = conf.format or function(varname, key, val)
-        return string.format("%s.%s = %s", varname, key, val)
-      end
+      local printfunc = conf.printfunc or kae.config.printfunc
+      local formatfunc = conf.format or kae.config.table_format
       local temp = {}
       for key, val in pairfunc(tbl) do
         table.insert(temp, {name=key, type=type(val), value=val})

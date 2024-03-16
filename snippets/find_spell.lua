@@ -1,8 +1,7 @@
 
 
-kae = dofile("mods/kae_test/files/lib/libkae.lua")
 player = get_players()[1]
-self.host:text_clear()
+if self and self.host and self.host.text_clear then self.host:text_clear() end
 
 function card_get_spell(card)
   local action = EntityGetComponentIncludingDisabled(card, "ItemActionComponent")
@@ -27,7 +26,7 @@ end
 function is_held_thing(entity)
   local entid = EntityGetParent(entity)
   local seen = {}
-  while entid and not seen[entid] do
+  while entid ~= 0 and not seen[entid] do
     seen[entid] = EntityGetParent(entid)
     if entid == player then return true end
     if entid == seen[entid] then return false end
@@ -42,15 +41,18 @@ function print_entity_position(entity, message)
   if wx == nil and wy == nil then wx, wy = px, py end
   local dx, dy = wx-px, wy-py
   local dist = math.sqrt(dx*dx + dy*dy)
-  if not is_held_thing(entity) then
-    print(("Entity %s at (%d, %d) (%d,%d; %d pixels away) %s"):format(
-      tostring(entity), wx, wy, dx, dy, dist, message or "found"))
+  if wx ~= 0 and wy ~= 0 then
+    if not is_held_thing(entity) then
+      print(("Entity %s at (%d, %d) (%d,%d; %d pixels away) %s"):format(
+        tostring(entity), wx, wy, dx, dy, dist, message or "found"))
+    end
   end
 end
 
-(function(spell_list)
+function search_for_spell_list(spell_list)
   print(("Searching for %d spells nearby..."):format(#spell_list))
 
+  --[[ Look for wands ]]
   local spell_table = {}
   for _, entry in ipairs(spell_list) do spell_table[entry] = true end
   for widx, wand in ipairs(EntityGetWithTag("wand")) do
@@ -76,6 +78,7 @@ end
     end
   end
 
+  --[[ Look for lone spell cards (eg. Holy Mountain) ]]
   for cidx, card in ipairs(EntityGetWithTag("card_action")) do
     if not is_held_thing(card) then
       local spell = card_get_spell(card)
@@ -84,11 +87,15 @@ end
       end
     end
   end
-end)({
+end
+
+search_for_spell_list({
 "REGENERATION_FIELD",
-"EXPLOSION_TINY",
-"HITFX_CRITICAL_WATER",
-"MATERIAL_WATER",
 "MANA_REDUCE",
+"TELEPORT_PROJECTILE",
+"TELEPORT_PROJECTILE_SHORT",
+--"EXPLOSION_TINY",
+--"HITFX_CRITICAL_WATER",
+--"MATERIAL_WATER",
 })
 
