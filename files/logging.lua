@@ -127,7 +127,7 @@ function KLog:config(key, value)
         return false, "level invalid type " .. vtype
     elseif key == "writer" then -- Single writer
         if vtype == "userdata" then
-            if io and io.vtype == "file" then
+            if io and io.type == "file" then
                 table.insert(self._writers, value)
                 return true
             end

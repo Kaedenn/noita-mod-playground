@@ -42,7 +42,7 @@ Environment:
 --]]
 
 dofile_once("data/scripts/lib/utilities.lua")
-dofile("mods/kae_test/files/imguiutil.lua")
+dofile_once("mods/kae_test/files/imguiutil.lua")
 
 kae = dofile_once("mods/kae_test/files/lib/libkae.lua")
 EZWand = dofile_once("mods/kae_test/files/lib/EZWand.lua")
@@ -55,10 +55,6 @@ for key, val in pairs(_G) do
     _G_STASH[key] = val
 end
 
---[[ TODO:
--- Proper history traversal on up/down arrow keys
---]]
-
 INPUT_MIN_LINES = 4
 
 EvalPanel = {
@@ -69,6 +65,7 @@ EvalPanel = {
         histunique = true,      -- should history be kept globally unique?
         num_lines = 6,          -- how many lines should the edit window have?
         show_resize = false,    -- display the resize input element?
+        run_funcs = false,      -- should we execute env.funcs every frame?
     },
     error = {nil, nil}, -- most recent error
     host = nil,         -- reference to the controlling Panel class
@@ -82,9 +79,12 @@ EvalPanel = {
 --[[ Initialize this panel ]]
 function EvalPanel:init(environ, host)
     self.env = environ or {}
-    self.host = host or {}
+    self.host = host
 
-    setmetatable(self, { __index = environ or _G })
+    self.env.funcs = {}
+
+    setmetatable(self, { __index = function(tbl, key) return rawget(tbl, key) end })
+    --setmetatable(self, { __index = environ or _G } )
     return self
 end
 
@@ -137,15 +137,27 @@ function EvalPanel:eval(code)
         GamePrint(errmsg)
         self.host:p(errmsg)
         self.error[1] = errmsg
-        self.error[2] = debug.traceback()
+        self.error[2] = nil
+        if debug and debug.traceback then
+            self.error[2] = debug.traceback()
+        end
     end
 
     self.env.player = get_players()[1]
 
-    -- Parse the code string into a function
-    self.host:d(("eval %s"):format(code))
-    local cfunc, cerror = load(code)
-    self.host:d(("cr = %s, ce = %s"):format(cfunc, cerror))
+    local cfunc, cerror
+    if type(code) == "string" then
+        -- Parse the code string into a function
+        self.host:d(("eval %s"):format(code))
+        cfunc, cerror = load(code)
+        self.host:d(("cr = %s, ce = %s"):format(cfunc, cerror))
+    elseif type(code) == "function" then
+        cfunc, cerror = code, nil
+    else
+        cfunc = tostring(code)
+        cerror = ("%s is not string/function"):format(type(code))
+    end
+
     if type(cfunc) ~= "function" then
         return cfunc, cerror, nil, nil
     end
@@ -176,18 +188,55 @@ function EvalPanel:eval(code)
         end
     }
 
-    kae.config.printfunc = env_table["print"]
+    -- tell libkae to use our custom print function
+    if kae and kae.config then
+        kae.config.printfunc = env_table["print"]
+    end
 
     local env = setmetatable(env_table, env_meta)
     local func = setfenv(cfunc, env)
-    local presult, pvalue = nil, nil
-    presult, pvalue = xpcall(func, code_on_error)
+    local presult, pvalue = xpcall(func, code_on_error)
     return cfunc, cerror, presult, pvalue
+end
+
+--[[ Execute the given code, with diagnostic handling ]]
+function EvalPanel:eval_full(code, config)
+    local conf = config or {}
+    self.env.exception = nil
+    local cres, cerr, pres, pval = self:eval(code, self.env)
+    if self.env.exception ~= nil then
+        if self.env.exception[1] ~= nil then
+            self.host:p(("error(): %s"):format(self.env.exception[1]))
+        end
+        if self.env.exception[2] ~= nil then
+            self.host:p(("error(): %s"):format(self.env.exception[2]))
+        end
+    end
+    if not conf.ephemeral then
+        self:push_history()
+    end
+    if cerr ~= nil then
+        self.host:p(("load() error: %s"):format(cerr))
+    elseif pres ~= true and pval ~= nil then
+        self.host:p(("eval() error: %s"):format(pval))
+    elseif pval == "" then
+        self.host:p("<no output>")
+    elseif pval ~= nil then
+        self.host:p(tostring(pval))
+    end
 end
 
 --[[ Draw a custom menu for this panel ]]
 function EvalPanel:draw_menu(imgui)
+    local enable
     if imgui.BeginMenu(self.name) then
+        enable = f_enable(self.config.run_funcs)
+        if imgui.MenuItem(enable .. " frame functions") then
+            self.config.run_funcs = not self.config.run_funcs
+        end
+
+        imgui.Separator()
+
         if imgui.MenuItem("Copy history") then
             local all_commands = ""
             for _, item in ipairs(self.history) do
@@ -203,12 +252,12 @@ function EvalPanel:draw_menu(imgui)
         end
 
         if imgui.MenuItem("Resize input") then
-            self.show_resize = true
+            self.config.show_resize = true
         end
 
         imgui.Separator()
 
-        local enable = f_enable(self.config.show_keys)
+        enable = f_enable(self.config.show_keys)
         if imgui.MenuItem(enable .. " key tracker") then
             self.config.show_keys = not self.config.show_keys
         end
@@ -236,6 +285,7 @@ end
 
 --[[ Draw this panel ]]
 function EvalPanel:draw(imgui)
+    self.env.imgui = imgui
     if type(self.code) ~= "string" then
         self.host:p(("ERROR: self.code is %s '%s' not string"):format(
             type(self.code), self.code))
@@ -312,14 +362,14 @@ function EvalPanel:draw(imgui)
     if not self.env.temp_num_lines then
         self.env.temp_num_lines = self.config.num_lines
     end
-    if self.show_resize then
+    if self.config.show_resize then
         ret, self.env.temp_num_lines = imgui.InputInt("Lines", self.env.temp_num_lines)
         if self.env.temp_num_lines < INPUT_MIN_LINES then
             self.env.temp_num_lines = INPUT_MIN_LINES
         end
         if imgui.Button("Apply") then
             self.config.num_lines = self.env.temp_num_lines
-            self.show_resize = false
+            self.config.show_resize = false
         end
     end
 
@@ -360,6 +410,18 @@ function EvalPanel:draw(imgui)
 
         if #keys_down > 0 then
             imgui.Text("Down: " .. table.concat(keys_down, " "))
+        end
+    end
+
+    if self.env.funcs and self.config.run_funcs then
+        local nfuncs = 0
+        for fname, fobj in pairs(self.env.funcs) do
+            nfuncs = nfuncs + 1
+            imgui.Text(("Running %s"):format(fname))
+            self:eval_full(fobj, {ephemeral=true})
+        end
+        if self.host.debugging then
+            imgui.Text(("Invoked %d run function(s)"):format(nfuncs))
         end
     end
 end

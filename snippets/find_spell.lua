@@ -89,11 +89,13 @@ function search_for_spell_list(spell_list)
   end
 end
 
+-- See snippets/spell_list.lua
 search_for_spell_list({
 "REGENERATION_FIELD",
 "MANA_REDUCE",
 "TELEPORT_PROJECTILE",
 "TELEPORT_PROJECTILE_SHORT",
+"X_RAY", -- All Seeing Eye
 --"EXPLOSION_TINY",
 --"HITFX_CRITICAL_WATER",
 --"MATERIAL_WATER",

@@ -139,13 +139,13 @@ function aplc_get()
 end
 
 return {
-    LIQUIDS: LIQUIDS,
-    ORGANICS: ORGANICS,
-    get_liquids: get_liquids,
-    get_organics: get_organics,
-    random_pick: aplc_random_pick,
-    random_set: aplc_random_set,
-    get: get,
+    LIQUIDS = LIQUIDS,
+    ORGANICS = ORGANICS,
+    get_liquids = get_liquids,
+    get_organics = get_organics,
+    random_pick = aplc_random_pick,
+    random_set = aplc_random_set,
+    get = aplc_get,
 }
 
 -- vim: set ts=4 sts=4 sw=4 tw=79:

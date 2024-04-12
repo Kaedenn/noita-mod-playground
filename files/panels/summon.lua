@@ -65,8 +65,8 @@ end
 function SummonPanel:filter(rules)
     local kind = rules.kind or nil
     local tags = rules.tags or {}
-    if rule.tag then
-        table.insert(tags, rule.tag)
+    if rules.tag then
+        table.insert(tags, rules.tag)
     end
 
     -- TODO: any other criteria?

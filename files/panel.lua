@@ -45,15 +45,23 @@ Panel = {
 
     debugging = false,  -- true if debugging is active/enabled
     lines = {},         -- lines displayed below the panel
+
+    colors = {          -- text color configuration
+        enable = true,
+        debug = {0.9, 0.9, 0.0},
+    },
+
+    separator = "========"
 }
 
-Panel.SAVE_KEY = "kae_test.panel"
+Panel.SAVE_KEY = "kae_test_current_panel"
 
 -- Built-in panels
 PANELS_NATIVE = {
     dofile_once("mods/kae_test/files/panels/eval.lua"),
     dofile_once("mods/kae_test/files/panels/summon.lua"),
     dofile_once("mods/kae_test/files/panels/info.lua"),
+    dofile_once("mods/kae_test/files/panels/radar.lua"),
     --dofile_once("mods/kae_test/files/panels_old/progress.lua"),
 }
 
@@ -104,7 +112,7 @@ function Panel:init(env)
         local res, val = pcall(function() pobj:init(env, self) end)
         if not res then GamePrint(val) end
     end
-    local curr_panel = ModSettingGet(Panel.SAVE_KEY)
+    local curr_panel = GlobalsGetValue(Panel.SAVE_KEY, "")
     if self:is(curr_panel) then
         self:d(("curr := %s (from %s)"):format(curr_panel, Panel.SAVE_KEY))
         self.id_current = curr_panel
@@ -116,15 +124,15 @@ end
 -- Add a debug line (if debugging is enabled)
 function Panel:d(msg)
     if self.debugging then
-        table.insert(self.lines, ("DBG: %s"):format(msg))
+        table.insert(self.lines, {level="debug", msg})
     end
 end
 
 -- Add a debug line unless it already exists
 -- Returns true if the insert succeeded, false otherwise
 function Panel:d_unique(msg)
-    for _, message in ipairs(self.lines) do
-        if message == msg then
+    for _, line in ipairs(self.lines) do
+        if line[1] == msg then
             return false
         end
     end
@@ -162,7 +170,7 @@ end
 function Panel:set(pid)
     if self:is(pid) then
         self.id_current = pid
-        --ModSettingSetNextValue(Panel.SAVE_KEY, pid, false)
+        GlobalsSetValue(Panel.SAVE_KEY, pid)
     end
 end
 
@@ -175,6 +183,18 @@ function Panel:current()
         return self:get(self.id_current)
     end
     return nil
+end
+
+function Panel:set_var(pid, varname, value)
+    local key = ("kae_test_panel_%s_%s"):format(pid, varname)
+    GlobalsSetValue(key, value)
+end
+
+function Panel:get_var(pid, varname, default)
+    local key = ("kae_test_panel_%s_%s"):format(pid, varname)
+    local value = GlobalsGetValue(key, "")
+    if value == "" then return default end
+    return value
 end
 
 function Panel:build_menu(imgui)
@@ -240,6 +260,37 @@ function Panel:build_menu(imgui)
 
 end
 
+function Panel:_draw_line(imgui, line)
+    if type(line) == "table" then
+        local level = line.level or nil
+        local color = line.color or nil
+        if color == nil and level ~= nil then
+            color = self.colors[level] or nil
+        end
+
+        if color ~= nil then
+            imgui.PushStyleColor(imgui.Col.Text, unpack(color))
+        end
+        for idx, token in ipairs(line) do
+            if idx ~= 1 then imgui.SameLine() end
+            if level ~= nil then
+                imgui.Text(("%s:"):format(level))
+                imgui.SameLine()
+            end
+            self:_draw_line(imgui, token)
+        end
+        if color ~= nil then
+            imgui.PopStyleColor()
+        end
+    elseif line == self.separator then
+        imgui.Separator()
+    elseif type(line) == "string" then
+        imgui.Text(line)
+    else
+        imgui.Text(tostring(line))
+    end
+end
+
 function Panel:draw(imgui)
 
     local current = self:current()
@@ -247,8 +298,12 @@ function Panel:draw(imgui)
         current:draw(imgui)
     end
 
-    for _, line in ipairs(self.lines) do
-        imgui.Text(line)
+    local flags = 0 -- We don't need anything special at the moment
+    if imgui.BeginChild("Output", 0, 0, false, flags) then
+        for _, line in ipairs(self.lines) do
+            self:_draw_line(imgui, line)
+        end
+        imgui.EndChild()
     end
 end
 
