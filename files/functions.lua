@@ -1,6 +1,5 @@
 dofile_once("data/scripts/lib/utilities.lua")
 
-
 function asboolean(value)
     if type(value) == "boolean" then return value end
     if type(value) == "number" then return value ~= 0 end
@@ -77,22 +76,5 @@ function table_has(tbl, key)
     end
     return false
 end
-
---[[ TODO: Move these to config.lua ]]
-function mkfn_setting_get(setting)
-    return function()
-        return GameSettingGet(setting)
-    end
-end
-
---[[ TODO: Move these to config.lua ]]
-function mkfn_setting_set(setting, astype)
-    return function(value)
-        local value_final = value_interpret(value, astype)
-        GameSettingSet(setting, value_final)
-    end
-end
-
-
 
 -- vim: set ts=4 sts=4 sw=4:

@@ -12,20 +12,7 @@ Available Functions & Variables:
   code            code being executed, as a string
   imgui           reference to the ImGui instance, if needed
 
-  "Draw" functions: these functions are called once per frame with the
-  imgui object as its single parameter, _after_ drawing the current
-  panel and feedback text, if any.
-    draw_func(imgui)
-
-  add_draw_func(function) -> boolean
-    Add a draw function that's called every frame; functions are
-    tracked via tostring(function), and so adding a function more than
-    once will have no effect. Returns true if the function was added
-    (wasn't already present), false otherwise.
-
-  remove_draw_func(function) -> boolean
-    Remove a draw function; returns true if the function was present,
-    false otherwise.
+  self.env.funcs  table of draw functions to call every frame
 
 Available Objects:
   kae             libkae utility library
@@ -315,10 +302,6 @@ function EvalPanel:draw(imgui)
         code = ("return (%s)"):format(self.code)
     end
 
-    --[[if imgui.IsKeyPressed(imgui.Key.Enter) then
-        exec_code = true
-    end]]
-
     if exec_code then
         self.env.exception = nil
         self.env.imgui = imgui
@@ -356,6 +339,10 @@ function EvalPanel:draw(imgui)
     imgui.SameLine()
     if imgui.SmallButton("Next") or imgui.IsKeyPressed(imgui.Key.DownArrow) then
         hist_go = 1
+    end
+    imgui.SameLine()
+    if imgui.SmallButton("Debug") then
+        self.host:set_debugging(not self.host.debugging)
     end
 
     -- If requested, show an input to change the number of lines available

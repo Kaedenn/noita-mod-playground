@@ -58,7 +58,6 @@ function OnWorldPostUpdate()
     end
 
     if conf_get(CONF.ENABLE) then
-        local WF = imgui.WindowFlags
         if not KPanel then
             KPanel = KPanelLib:new()
         end
@@ -67,9 +66,10 @@ function OnWorldPostUpdate()
         elseif not KPanel.init then
             GamePrint("Failed KPanel:new(); init not defined")
         elseif not KPanel.initialized then
-            KPanel:init(_G)
+            KPanel:init(nil)
             KPanel:set("info")
         end
+
         if imgui.Begin("Kae", nil, bit.bor(
             imgui.WindowFlags.NoFocusOnAppearing,
             imgui.WindowFlags.MenuBar,
@@ -82,8 +82,13 @@ function OnWorldPostUpdate()
             res, val = pcall(_build_gui)
             if not res then GamePrint(tostring(val)) end
             imgui.End()
+        else
+            if KPanel then
+                KPanel:draw_closed(imgui)
+            end
         end
     end
+
 end
 
 -- vim: set ts=4 sts=4 sw=4 tw=79:

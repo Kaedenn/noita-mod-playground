@@ -30,10 +30,7 @@
 -- Panels are allowed to have whatever else they desire in their panel table.
 --]]
 
---[[ TODO:
--- Save current panel in game Globals
--- Scrollable output text
---]]
+-- luacheck: globals MOD_ID CONF conf_get conf_set
 
 dofile_once("data/scripts/lib/utilities.lua")
 dofile_once("mods/kae_test/config.lua")
@@ -51,74 +48,112 @@ Panel = {
         debug = {0.9, 0.9, 0.0},
     },
 
+    -- host:p(host.separator) to print a horizontal line
     separator = "========"
 }
 
-Panel.SAVE_KEY = "kae_test_current_panel"
+-- String used to denote a "default value"
+Panel.DEFAULT_VALUE = ("<%s>"):format(string.char(0x7f))
+
+-- GlobalsGetValue/GlobalsSetValue current panel
+Panel.SAVE_KEY = MOD_ID .. "_current_panel"
 
 -- Built-in panels
 PANELS_NATIVE = {
     dofile_once("mods/kae_test/files/panels/eval.lua"),
-    dofile_once("mods/kae_test/files/panels/summon.lua"),
     dofile_once("mods/kae_test/files/panels/info.lua"),
-    dofile_once("mods/kae_test/files/panels/radar.lua"),
+    --dofile_once("mods/kae_test/files/panels/summon.lua"),
+    --dofile_once("mods/kae_test/files/panels/radar.lua"),
     --dofile_once("mods/kae_test/files/panels_old/progress.lua"),
 }
 
--- Create the panel subsystem. Must be called first, before any other
--- functions are called.
+-- Create the panel subsystem.
+--
+-- Must be called first, before any other functions are called.
 function Panel:new()
     local this = {}
-    setmetatable(this, self)
-    self.__index = self
+    setmetatable(this, {
+        __index = function(tbl, key)
+            return rawget(tbl, key) or rawget(Panel, key)
+        end,
+    })
 
     for _, pobj in ipairs(PANELS_NATIVE) do
-        self:add(pobj)
+        this:add(pobj)
     end
 
-    self.debugging = conf_get(CONF.DEBUG)
+    this.debugging = conf_get(CONF.DEBUG)
 
     return this
 end
 
 -- Add a new panel
 function Panel:add(panel)
-    local pobj = { host = {} }
-    setmetatable(pobj, { __index = panel })
-    setmetatable(pobj.host, { __index = self })
-
+    local pobj = {
+        host = self,
+        config = {}
+    }
+    -- Persist default configuration
+    if type(panel.config) == "table" then
+        for key, val in pairs(panel.config) do
+            pobj.config[key] = val
+        end
+    end
     if not panel.id then error("panel missing id") end
     if not panel.draw then error("panel " .. panel.id .. " missing draw") end
-    pobj.name = panel.name or panel.id
-    pobj.init = panel.init or function() end
-    pobj.configure = panel.configure or function(config) end
+    for attr, attr_value in pairs(panel) do
+        if attr ~= "host" and attr ~= "config" then
+            pobj[attr] = attr_value
+        end
+    end
+    if not pobj.name then pobj.name = panel.id end
+    if not pobj.init then pobj.init = function() end end
+    if not pobj.configure then pobj.configure = function(config) end end
+    if not pobj.draw_menu then pobj.draw_menu = function(imgui) end end
+
+    setmetatable(pobj, { -- pobj inherits from panel
+        __index = function(tbl, key)
+            local value = rawget(tbl, key)
+            if value == nil then value = rawget(panel, key) end
+            return value
+        end,
+        __newindex = function(tbl, key, val)
+            rawset(tbl, key, val)
+        end,
+    })
 
     self.PANELS[panel.id] = pobj
-
-    if panel.init == nil then
-        panel.init = function() end
-    end
-    if panel.configure == nil then
-        panel.configure = function() end
-    end
-    setmetatable(panel, { __index = panel })
-    self.PANELS[panel.id] = panel
 end
 
--- Initialize the panel subsystem
+-- Initialize the panel subsystem.
+--
 -- Must be called after Panel:new()
 function Panel:init(env)
     for pid, pobj in pairs(self.PANELS) do
         local res, val = pcall(function() pobj:init(env, self) end)
         if not res then GamePrint(val) end
     end
-    local curr_panel = GlobalsGetValue(Panel.SAVE_KEY, "")
-    if self:is(curr_panel) then
+    local curr_panel = GlobalsGetValue(Panel.SAVE_KEY)
+    if curr_panel ~= "" and self:is(curr_panel) then
         self:d(("curr := %s (from %s)"):format(curr_panel, Panel.SAVE_KEY))
         self.id_current = curr_panel
     end
 
     self.initialized = true
+end
+
+-- Enable or disable debugging (toggle if nil)
+function Panel:set_debugging(enable)
+    if enable == nil then
+        self.debugging = not self.debugging
+    elseif type(enable) == "boolean" then
+        self.debugging = enable
+    elseif enable then
+        self.debugging = true
+    else
+        self.debugging = false
+    end
+    conf_set(CONF.DEBUG, self.debugging)
 end
 
 -- Add a debug line (if debugging is enabled)
@@ -128,11 +163,10 @@ function Panel:d(msg)
     end
 end
 
--- Add a debug line unless it already exists
--- Returns true if the insert succeeded, false otherwise
+-- Add a debug line unless it already exists; returns true on success
 function Panel:d_unique(msg)
     for _, line in ipairs(self.lines) do
-        if line[1] == msg then
+        if self:line_to_string(line) ~= self:line_to_string(msg) then
             return false
         end
     end
@@ -145,20 +179,43 @@ function Panel:p(msg)
     table.insert(self.lines, msg)
 end
 
+-- Add a line unless it already exists; returns true on success
+function Panel:p_unique(msg)
+    for _, line in ipairs(self.lines) do
+        if self:line_to_string(line) ~= self:line_to_string(msg) then
+            return false
+        end
+    end
+    self:p(msg)
+    return true
+end
+
 -- Prepend a line
 function Panel:prepend(msg)
     table.insert(self.lines, 1, msg)
 end
 
--- Clear the text. Operates by reference just in case a panel has a
--- direct reference to self.lines.
+-- Prepend a line unless it already exists; returns true on success
+function Panel:prepend_unique(msg)
+    for _, line in ipairs(self.lines) do
+        if self:line_to_string(line) ~= self:line_to_string(msg) then
+            return false
+        end
+    end
+    self:prepend(msg)
+    return true
+end
+
+-- Clear the text
 function Panel:text_clear()
     while #self.lines > 0 do
         table.remove(self.lines, 1)
     end
 end
 
-function Panel:is(pid) return self.PANELS[pid] ~= nil end
+function Panel:is(pid)
+    return self.PANELS[pid] ~= nil
+end
 
 function Panel:get(pid)
     if self:is(pid) then
@@ -168,7 +225,8 @@ function Panel:get(pid)
 end
 
 function Panel:set(pid)
-    if self:is(pid) then
+    if self:is(pid) and pid ~= self.id_current then
+        self:text_clear()
         self.id_current = pid
         GlobalsSetValue(Panel.SAVE_KEY, pid)
     end
@@ -186,36 +244,31 @@ function Panel:current()
 end
 
 function Panel:set_var(pid, varname, value)
-    local key = ("kae_test_panel_%s_%s"):format(pid, varname)
-    GlobalsSetValue(key, value)
+    local key = ("%s_panel_%s_%s"):format(MOD_ID, pid, varname)
+    local encoded = value:gsub("\"", "&quot;")
+    GlobalsSetValue(key, encoded)
 end
 
 function Panel:get_var(pid, varname, default)
-    local key = ("kae_test_panel_%s_%s"):format(pid, varname)
-    local value = GlobalsGetValue(key, "")
-    if value == "" then return default end
-    return value
+    local key = ("%s_panel_%s_%s"):format(MOD_ID, pid, varname)
+    local value = GlobalsGetValue(key, Panel.DEFAULT_VALUE)
+    if value == Panel.DEFAULT_VALUE then return default end
+    return value:gsub("&quot;", "\"")
 end
 
 function Panel:build_menu(imgui)
     local current = self:current()
 
     if imgui.BeginMenu("Panel") then
-        if self.debugging then
-            if imgui.MenuItem("Disable Debugging") then
-                self.debugging = false
-                conf_set(CONF.DEBUG, self.debugging)
-            end
-        else
-            if imgui.MenuItem("Enable Debugging") then
-                self.debugging = true
-                conf_set(CONF.DEBUG, self.debugging)
-            end
+        local label = self.debugging and "Disable" or "Enable"
+        if imgui.MenuItem(label .. " Debugging") then
+            self:set_debugging(not self.debugging)
         end
 
-        if imgui.MenuItem("Copy") then
+        if imgui.MenuItem("Copy Text") then
             local all_lines = ""
-            for _, line in ipairs(self.lines) do
+            for _, line_obj in ipairs(self.lines) do
+                local line = self:line_to_string(line_obj)
                 all_lines = all_lines .. line .. "\r\n"
             end
             imgui.SetClipboardText(all_lines)
@@ -291,19 +344,51 @@ function Panel:_draw_line(imgui, line)
     end
 end
 
-function Panel:draw(imgui)
-
-    local current = self:current()
-    if current ~= nil then
-        current:draw(imgui)
+--[[ Join together a line of text into a single string ]]
+function Panel:line_to_string(line)
+    if type(line) == "table" then
+        local result = ""
+        if line.level ~= nil then
+            result = ("%s:"):format(line.level)
+        end
+        for _, entry in ipairs(line) do
+            result = result .. " " .. self:line_to_string(entry)
+        end
+        return result
     end
 
-    local flags = 0 -- We don't need anything special at the moment
+    if type(line) == "string" then
+        return line
+    end
+    return tostring(line)
+end
+
+--[[ Called when the main window is open ]]
+function Panel:draw(imgui)
+    local current = self:current()
+    if current ~= nil then
+        imgui.PushID(MOD_ID .. "_panel_" .. self.id_current)
+        current:draw(imgui)
+        imgui.PopID()
+    end
+
+    local flags = bit.bor(
+        imgui.WindowFlags.HorizontalScrollbar)
     if imgui.BeginChild("Output", 0, 0, false, flags) then
         for _, line in ipairs(self.lines) do
             self:_draw_line(imgui, line)
         end
         imgui.EndChild()
+    end
+end
+
+--[[ Called instead of draw() if the main window is closed ]]
+function Panel:draw_closed(imgui)
+    local current = self:current()
+    if current ~= nil then
+        if current.draw_closed then
+            current:draw_closed(imgui)
+        end
     end
 end
 
