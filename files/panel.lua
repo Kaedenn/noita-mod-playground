@@ -35,6 +35,7 @@
 dofile_once("data/scripts/lib/utilities.lua")
 dofile_once("mods/kae_test/config.lua")
 
+--[[ Template object with default values for the Panel class ]]
 Panel = {
     initialized = false,
     id_current = nil,   -- ID of the "current" panel
@@ -52,13 +53,13 @@ Panel = {
     separator = "========"
 }
 
--- String used to denote a "default value"
+--[[ String used to denote a "default value" ]]
 Panel.DEFAULT_VALUE = ("<%s>"):format(string.char(0x7f))
 
--- GlobalsGetValue/GlobalsSetValue current panel
+--[[ GlobalsGetValue/GlobalsSetValue current panel ]]
 Panel.SAVE_KEY = MOD_ID .. "_current_panel"
 
--- Built-in panels
+--[[ Built-in panels ]]
 PANELS_NATIVE = {
     dofile_once("mods/kae_test/files/panels/eval.lua"),
     dofile_once("mods/kae_test/files/panels/info.lua"),
@@ -67,9 +68,10 @@ PANELS_NATIVE = {
     --dofile_once("mods/kae_test/files/panels_old/progress.lua"),
 }
 
--- Create the panel subsystem.
+--[[ Create the panel subsystem.
 --
 -- Must be called first, before any other functions are called.
+--]]
 function Panel:new()
     local this = {}
     setmetatable(this, {
@@ -87,7 +89,7 @@ function Panel:new()
     return this
 end
 
--- Add a new panel
+--[[ Add a new panel ]]
 function Panel:add(panel)
     local pobj = {
         host = self,
@@ -125,9 +127,10 @@ function Panel:add(panel)
     self.PANELS[panel.id] = pobj
 end
 
--- Initialize the panel subsystem.
+--[[ Initialize the panel subsystem.
 --
 -- Must be called after Panel:new()
+--]]
 function Panel:init(env)
     for pid, pobj in pairs(self.PANELS) do
         local res, val = pcall(function() pobj:init(env, self) end)
@@ -142,7 +145,7 @@ function Panel:init(env)
     self.initialized = true
 end
 
--- Enable or disable debugging (toggle if nil)
+--[[ Enable or disable debugging (toggle if nil) ]]
 function Panel:set_debugging(enable)
     if enable == nil then
         self.debugging = not self.debugging
@@ -156,14 +159,14 @@ function Panel:set_debugging(enable)
     conf_set(CONF.DEBUG, self.debugging)
 end
 
--- Add a debug line (if debugging is enabled)
+--[[ Add a debug line (if debugging is enabled) ]]
 function Panel:d(msg)
     if self.debugging then
         table.insert(self.lines, {level="debug", msg})
     end
 end
 
--- Add a debug line unless it already exists; returns true on success
+--[[ Add a debug line unless it already exists; returns true on success ]]
 function Panel:d_unique(msg)
     for _, line in ipairs(self.lines) do
         if self:line_to_string(line) ~= self:line_to_string(msg) then
@@ -174,12 +177,12 @@ function Panel:d_unique(msg)
     return true
 end
 
--- Add a line
+--[[ Add a line ]]
 function Panel:p(msg)
     table.insert(self.lines, msg)
 end
 
--- Add a line unless it already exists; returns true on success
+--[[ Add a line unless it already exists; returns true on success ]]
 function Panel:p_unique(msg)
     for _, line in ipairs(self.lines) do
         if self:line_to_string(line) ~= self:line_to_string(msg) then
@@ -190,12 +193,12 @@ function Panel:p_unique(msg)
     return true
 end
 
--- Prepend a line
+--[[ Prepend a line ]]
 function Panel:prepend(msg)
     table.insert(self.lines, 1, msg)
 end
 
--- Prepend a line unless it already exists; returns true on success
+--[[ Prepend a line unless it already exists; returns true on success ]]
 function Panel:prepend_unique(msg)
     for _, line in ipairs(self.lines) do
         if self:line_to_string(line) ~= self:line_to_string(msg) then
@@ -206,17 +209,19 @@ function Panel:prepend_unique(msg)
     return true
 end
 
--- Clear the text
+--[[ Clear the text ]]
 function Panel:text_clear()
     while #self.lines > 0 do
         table.remove(self.lines, 1)
     end
 end
 
+--[[ True if the given panel ID refers to a known Panel object ]]
 function Panel:is(pid)
     return self.PANELS[pid] ~= nil
 end
 
+--[[ Get the Panel object for the given panel ID ]]
 function Panel:get(pid)
     if self:is(pid) then
         return self.PANELS[pid]
@@ -224,6 +229,7 @@ function Panel:get(pid)
     return nil
 end
 
+--[[ Change the current panel ]]
 function Panel:set(pid)
     if self:is(pid) and pid ~= self.id_current then
         self:text_clear()
@@ -232,10 +238,12 @@ function Panel:set(pid)
     end
 end
 
+--[[ Set the current panel to nil ]]
 function Panel:reset()
     self.id_current = nil
 end
 
+--[[ Returns the current Panel object or nil ]]
 function Panel:current()
     if self.id_current ~= nil then
         return self:get(self.id_current)
@@ -243,12 +251,23 @@ function Panel:current()
     return nil
 end
 
+--[[ Set a value in lua_globals.
+--
+-- Note that Noita does not escape quotes, and GlobalsSetValue with a
+-- value containing quotes will corrupt world_state.lua, causing
+-- everything below the <lua_globals> entry to be discarded. Therefore,
+-- replace double-quotes with their XML escape sequence.
+--]]
 function Panel:set_var(pid, varname, value)
     local key = ("%s_panel_%s_%s"):format(MOD_ID, pid, varname)
     local encoded = value:gsub("\"", "&quot;")
     GlobalsSetValue(key, encoded)
 end
 
+--[[ Get a value in lua_globals.
+--
+-- Returns default if the key isn't present. See set_var above.
+--]]
 function Panel:get_var(pid, varname, default)
     local key = ("%s_panel_%s_%s"):format(MOD_ID, pid, varname)
     local value = GlobalsGetValue(key, Panel.DEFAULT_VALUE)
@@ -256,6 +275,7 @@ function Panel:get_var(pid, varname, default)
     return value:gsub("&quot;", "\"")
 end
 
+--[[ Build the window menu ]]
 function Panel:build_menu(imgui)
     local current = self:current()
 
@@ -313,6 +333,7 @@ function Panel:build_menu(imgui)
 
 end
 
+--[[ Private: draw a line to the feedback box ]]
 function Panel:_draw_line(imgui, line)
     if type(line) == "table" then
         local level = line.level or nil

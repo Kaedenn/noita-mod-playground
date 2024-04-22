@@ -123,6 +123,11 @@ local function _item_get_name(entity)
             GameTextGet("$item_chest_treasure_super"),
             "chest_random_super.xml")
     end
+    if path:match("physics_greed_die.xml") then
+        return ("%s [%s]"):format(
+            GameTextGet("$item_greed_die"),
+            "physics_greed_die.xml")
+    end
 
     if name ~= "" and name:match("^[$][%a]+_[%a%d_]+$") then
         locname = GameTextGet(name)
@@ -221,6 +226,8 @@ end
 InfoPanel._private_funcs._get_health = _get_health
 
 --[[ Get all entities having one of the given tags
+--
+-- Returns a table of {entity_id, entity_name} pairs.
 --
 -- Filters:
 --  no_player       omit entities descending from the player entitiy
@@ -428,6 +435,8 @@ function InfoPanel:_get_rare_items()
         local entity = item[1]
         local name = item[2]
         if name:match(GameTextGet("$item_chest_treasure_super")) then
+            table.insert(items, {entity=entity, name=name})
+        elseif name:match(GameTextGet("$item_greed_die")) then
             table.insert(items, {entity=entity, name=name})
         end
     end
@@ -724,8 +733,7 @@ function InfoPanel:draw(imgui)
             self.host:p(("%s with %s detected nearby!!"):format(
                 entity.name, table.concat(entity.rare_contents, ", ")))
             local ex, ey = EntityGetTransform(entity.entity)
-            self.host:d(("%s %d at {%d,%d}"):format(
-                entity.name, entity.entity, ex, ey))
+            self.host:d(("%s %d at {%d,%d}"):format(entity.name, entity.entity, ex, ey))
         end
     end
 
@@ -740,8 +748,7 @@ function InfoPanel:draw(imgui)
         for _, entity in ipairs(self:_get_rare_enemies()) do
             self.host:p(("%s detected nearby!!"):format(entity.name))
             local ex, ey = EntityGetTransform(entity.entity)
-            self.host:d(("%s %d at {%d,%d}"):format(
-                entity.name, entity.entity, ex, ey))
+            self.host:d(("%s %d at {%d,%d}"):format(entity.name, entity.entity, ex, ey))
         end
     end
 
