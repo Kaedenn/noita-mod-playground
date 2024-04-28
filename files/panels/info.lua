@@ -18,7 +18,7 @@ InfoPanel = {
             "creepy_liquid",
             "magic_liquid_hp_regeneration", -- Healthium
             "magic_liquid_weakness", -- Diminution
-            "mat_purifying_powder",
+            "purifying_powder",
             "urine",
         },
         rare_entities = {
@@ -477,7 +477,7 @@ function InfoPanel:_find_spells()
     for _, entry in ipairs(_get_with_tags({"wand"}, {no_player=true})) do
         local entid = entry[1]
         for _, spell in ipairs(_wand_get_spells(entid)) do
-            if spell_table[spell.id] ~= nil then
+            if spell_table[spell] ~= nil then
                 if not self.env.wand_matches[entid] then
                     self.env.wand_matches[entid] = {}
                 end
@@ -490,7 +490,6 @@ end
 --[[ Draw the on-screen UI ]]
 function InfoPanel:_draw_onscreen_gui()
     if not self.gui then self.gui = GuiCreate() end
-    if self.env.gui_open == nil then self.env.gui_open = true end
     local gui = self.gui
     local id = 0
     local padx, pady = 10, 2
@@ -500,46 +499,44 @@ function InfoPanel:_draw_onscreen_gui()
         id = id + 1
         return id
     end
-    local function liney(num)
-        return screen_height - char_height*num - pady
-    end
     GuiStartFrame(gui)
     GuiIdPushString(gui, "kae_test_panel_info")
 
-    local btext = self.env.gui_open and "[Close]" or "[Info]"
-    if GuiButton(gui, padx, liney(1), btext, next_id()) then
-        self.env.gui_open = not self.env.gui_open
+    local linenr = 0
+    local function draw_text(line)
+        linenr = linenr + 1
+        local liney = screen_height - char_height * linenr - pady
+        GuiText(gui, padx, liney, line)
     end
 
-    if self.env.gui_open then
-        local linenr = 0
-        for _, entry in ipairs(_aggregate(self:_get_rare_enemies())) do
-            linenr = linenr + 1
-            local entname = entry[1]
-            local entities = entry[2]
-            GuiText(gui, padx, liney(linenr+2), ("%dx %s"):format(#entities, entname))
-        end
+    for _, entry in ipairs(_aggregate(self:_get_rare_enemies())) do
+        local entname = entry[1]
+        local entities = entry[2]
+        draw_text(("%dx %s"):format(#entities, entname))
+    end
 
-        for _, entry in ipairs(self:_get_rare_items()) do
-            linenr = linenr + 1
-            local entname = entry.name
-            GuiText(gui, padx, liney(linenr+2), ("%s detected nearby!!"):format(entname))
-        end
+    for _, entry in ipairs(self:_get_rare_items()) do
+        draw_text(entry.name)
+    end
 
-        for entid, ent_spells in pairs(self.env.wand_matches) do
-            local spell_list = {}
-            for spell_name, _ in pairs(ent_spells) do
-                table.insert(spell_list, spell_name)
-            end
-            local spells = table.concat(spell_list, ", ")
-            linenr = linenr + 1
-            GuiText(gui, padx, liney(linenr+2), ("Wand with %s detected nearby!!"):format(spells))
+    for _, entity in ipairs(self:_get_rare_containers()) do
+        local contents = table.concat(entity.rare_contents, ", ")
+        draw_text(("%s with %s"):format(entity.name, contents))
+    end
+
+    for entid, ent_spells in pairs(self.env.wand_matches) do
+        local spell_list = {}
+        for spell_name, _ in pairs(ent_spells) do
+            table.insert(spell_list, spell_name)
         end
+        local spells = table.concat(spell_list, ", ")
+        draw_text(("Wand with %s detected nearby!!"):format(spells))
     end
 
     GuiIdPop(gui)
 end
 
+--[[ Public: initialize the panel ]]
 function InfoPanel:init(environ, host)
     self.env = environ or self.env or {}
     self.host = host or {}
@@ -559,7 +556,6 @@ function InfoPanel:init(environ, host)
 
     self.biomes = self:_get_biome_data()
     self.gui = GuiCreate()
-    self.env.gui_open = nil
     self.env.show_checkboxes = true
     self.env.manage_spells = false
     self.env.spell_list = {}
@@ -569,6 +565,7 @@ function InfoPanel:init(environ, host)
     return self
 end
 
+--[[ Public: draw the menu bar ]]
 function InfoPanel:draw_menu(imgui)
     if imgui.BeginMenu(self.name) then
         if imgui.MenuItem("Toggle Checkboxes") then
@@ -620,13 +617,13 @@ function InfoPanel:_draw_spell_dropdown(imgui)
     if ret then
         self.env.spell_text = text
     end
-    imgui.SameLine()
+    --[[imgui.SameLine()
     if self.env.spell_text ~= "" then
         if imgui.SmallButton("Add###add_direct") then -- Override spell autocomplete
             if not self.env.spell_add_multi then self.env.spell_text = "" end
             table.insert(self.env.spell_list, {name=text, id=text:upper()})
         end
-    end
+    end]]
     imgui.SameLine()
     if imgui.SmallButton("Done") then
         self.env.manage_spells = false
@@ -687,6 +684,7 @@ function InfoPanel:_draw_spell_list(imgui)
     end
 end
 
+--[[ Public: draw the panel content ]]
 function InfoPanel:draw(imgui)
     self.host:text_clear()
 
@@ -724,6 +722,8 @@ function InfoPanel:draw(imgui)
                 end
                 if #contents > 0 then
                     line = line .. " with " .. table.concat(contents, ", ")
+                elseif EntityHasTag(entity, "potion") then
+                    line = line .. " empty"
                 end
                 self.host:d(line)
             end
@@ -786,6 +786,7 @@ function InfoPanel:draw(imgui)
 
 end
 
+--[[ Public: called when the panel window is closed ]]
 function InfoPanel:draw_closed(imgui)
     if self.env.find_spells then
         self:_find_spells()
@@ -795,6 +796,7 @@ function InfoPanel:draw_closed(imgui)
     end
 end
 
+--[[ Public: update configuration ]]
 function InfoPanel:configure(config)
     for key, value in pairs(config) do
         self.config[key] = value
