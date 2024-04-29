@@ -3,6 +3,7 @@
 The "Info" Panel: Display interesting information
 
 TODO: Only display the primary biome of a biome group
+TODO: Draw health bars (only) when enabled
 --]]
 
 dofile("mods/kae_test/files/imguiutil.lua")
@@ -29,6 +30,10 @@ InfoPanel = {
             "$animal_mimic_potion",
             "$animal_playerghost",
         },
+        gui = {
+            pad_left = 10,
+            pad_bottom = 2,
+        },
     },
     env = {},
     host = nil,
@@ -46,6 +51,7 @@ InfoPanel = {
         {"Health bars", "show_health", false},
     },
 
+    -- For debugging, provide access to the local functions
     _private_funcs = {},
 }
 
@@ -467,7 +473,7 @@ function InfoPanel:_get_rare_enemies()
     return enemies
 end
 
---[[ Search for nearby desirable spells (TODO: lone cards) ]]
+--[[ Search for nearby desirable spells ]]
 function InfoPanel:_find_spells()
     local spell_table = {}
     for _, entry in ipairs(self.env.spell_list) do
@@ -485,6 +491,18 @@ function InfoPanel:_find_spells()
             end
         end
     end
+
+    self.env.card_matches = {}
+    for _, entry in ipairs(_get_with_tags({"card_action"}, {no_player=true})) do
+        local entid = entry[1]
+        local spell = _card_get_spell(entid)
+        local parent = EntityGetParent(entid)
+        if not self.env.wand_matches[parent] then
+            if spell and spell_table[spell] then
+                self.env.card_matches[entid] = true
+            end
+        end
+    end
 end
 
 --[[ Draw the on-screen UI ]]
@@ -492,7 +510,6 @@ function InfoPanel:_draw_onscreen_gui()
     if not self.gui then self.gui = GuiCreate() end
     local gui = self.gui
     local id = 0
-    local padx, pady = 10, 2
     local screen_width, screen_height = GuiGetScreenDimensions(gui)
     local char_width, char_height = GuiGetTextDimensions(gui, "M")
     local function next_id()
@@ -502,6 +519,7 @@ function InfoPanel:_draw_onscreen_gui()
     GuiStartFrame(gui)
     GuiIdPushString(gui, "kae_test_panel_info")
 
+    local padx, pady = self.config.gui.pad_left, self.config.gui.pad_bottom
     local linenr = 0
     local function draw_text(line)
         linenr = linenr + 1
@@ -533,6 +551,11 @@ function InfoPanel:_draw_onscreen_gui()
         draw_text(("Wand with %s detected nearby!!"):format(spells))
     end
 
+    for entid, _ in pairs(self.env.card_matches) do
+        local spell = _card_get_spell(entid)
+        draw_text(("Spell %s detected nearby!!"):format(spell))
+    end
+
     GuiIdPop(gui)
 end
 
@@ -560,6 +583,7 @@ function InfoPanel:init(environ, host)
     self.env.manage_spells = false
     self.env.spell_list = {}
     self.env.wand_matches = {}
+    self.env.card_matches = {}
     self.env.spell_add_multi = false
 
     return self
@@ -571,20 +595,49 @@ function InfoPanel:draw_menu(imgui)
         if imgui.MenuItem("Toggle Checkboxes") then
             self.env.show_checkboxes = not self.env.show_checkboxes
         end
-        if imgui.MenuItem("Show Spell List") then
+        if imgui.MenuItem("Select Spells") then
             self.env.manage_spells = true
         end
+
         imgui.Separator()
-        if imgui.MenuItem("Save Spell List") then
+        if imgui.MenuItem("Save Spell List (This Run)") then
             local data = smallfolk.dumps(self.env.spell_list)
             self.host:set_var(self.id, "spell_list", data)
             GamePrint(("Saved %d spells"):format(#self.env.spell_list))
         end
-        if imgui.MenuItem("Load Spell List") then
+        if imgui.MenuItem("Load Spell List (This Run)") then
             local data = self.host:get_var(self.id, "spell_list", "")
             if data ~= "" then
                 self.env.spell_list = smallfolk.loads(data)
                 GamePrint(("Loaded %d spells"):format(#self.env.spell_list))
+            else
+                GamePrint("No spell list saved")
+            end
+        end
+        if imgui.MenuItem("Clear Spell List (This Run)") then
+            self.host:set_var(self.id, "spell_list", "{}")
+        end
+
+        imgui.Separator()
+        if imgui.MenuItem("Save Spell List (Forever)") then
+            local data = smallfolk.dumps(self.env.spell_list)
+            self.host:save_value(self.id, "spell_list", data)
+            GamePrint(("Saved %d spells"):format(#self.env.spell_list))
+        end
+        if imgui.MenuItem("Load Spell List (Forever)") then
+            local data = self.host:load_value(self.id, "spell_list", "")
+            if data ~= "" then
+                self.env.spell_list = smallfolk.loads(data)
+                GamePrint(("Loaded %d spells"):format(#self.env.spell_list))
+            else
+                GamePrint("No spell list saved")
+            end
+        end
+        if imgui.MenuItem("Clear Spell List (Forever)") then
+            if self.host:remove_value(self.id, "spell_list") then
+                GamePrint("Cleared spell list")
+            else
+                GamePrint("No spell list saved")
             end
         end
         imgui.EndMenu()
@@ -667,20 +720,24 @@ end
 
 function InfoPanel:_draw_spell_list(imgui)
     local to_remove = nil
-    for idx, entry in ipairs(self.env.spell_list) do
-        if imgui.SmallButton("Remove###remove_" .. entry.id) then
-            to_remove = idx
+    local flags = bit.bor(
+        imgui.WindowFlags.HorizontalScrollbar)
+    if imgui.BeginChild("Spell List", 0, 0, false, flags) then
+        for idx, entry in ipairs(self.env.spell_list) do
+            if imgui.SmallButton("Remove###remove_" .. entry.id) then
+                to_remove = idx
+            end
+            imgui.SameLine()
+            local label = entry.name
+            if label:match("^[$]") then
+                label = GameTextGet(entry.name)
+                if not label or label == "" then label = entry.name end
+            end
+            imgui.Text(("%s [%s]"):format(label, entry.id))
         end
-        imgui.SameLine()
-        local label = entry.name
-        if label:match("^[$]") then
-            label = GameTextGet(entry.name)
-            if not label or label == "" then label = entry.name end
+        if to_remove ~= nil then
+            table.remove(self.env.spell_list, to_remove)
         end
-        imgui.Text(("%s [%s]"):format(label, entry.id))
-    end
-    if to_remove ~= nil then
-        table.remove(self.env.spell_list, to_remove)
     end
 end
 
@@ -765,6 +822,16 @@ function InfoPanel:draw(imgui)
             if wx ~= nil and wy ~= nil and wx ~= 0 and wy ~= 0 then
                 local pos_str = ("%d, %d"):format(wx, wy)
                 self.host:d(("Wand %d at %s with %s"):format(entid, pos_str, spells))
+            end
+        end
+
+        for entid, _ in pairs(self.env.card_matches) do
+            local spell = _card_get_spell(entid)
+            self.host:p(("Spell %s detected nearby!!"):format(spell))
+            local wx, wy = EntityGetTransform(entid)
+            if wx ~= nil and wy ~= nil and wx ~= 0 and wy ~= 0 then
+                local pos_str = ("%d, %d"):format(wx, wy)
+                self.host:d(("Spell %d at %s with %s"):format(entid, pos_str, spell))
             end
         end
     end

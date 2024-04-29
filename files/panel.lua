@@ -275,6 +275,24 @@ function Panel:get_var(pid, varname, default)
     return value:gsub("&quot;", "\"")
 end
 
+--[[ Save a value in mod settings ]]
+function Panel:save_value(pid, varname, value)
+    local key = ("%s.panel_%s_%s"):format(MOD_ID, pid, varname)
+    ModSettingSet(key, value)
+end
+
+--[[ Load a value from mod settings ]]
+function Panel:load_value(pid, varname)
+    local key = ("%s.panel_%s_%s"):format(MOD_ID, pid, varname)
+    return ModSettingGet(key)
+end
+
+--[[ Remove a value from mod settings ]]
+function Panel:remove_value(pid, varname)
+    local key = ("%s.panel_%s_%s"):format(MOD_ID, pid, varname)
+    return ModSettingRemove(key)
+end
+
 --[[ Build the window menu ]]
 function Panel:build_menu(imgui)
     local current = self:current()
@@ -395,7 +413,7 @@ function Panel:draw(imgui)
 
     local flags = bit.bor(
         imgui.WindowFlags.HorizontalScrollbar)
-    if imgui.BeginChild("Output", 0, 0, false, flags) then
+    if imgui.BeginChild("Output###panel_main", 0, 0, false, flags) then
         for _, line in ipairs(self.lines) do
             self:_draw_line(imgui, line)
         end
