@@ -774,8 +774,12 @@ function InfoPanel:draw(imgui)
                 local ex, ey = EntityGetTransform(entity)
                 local contents = {}
                 line = ("%s %d at {%d,%d}"):format(name, entity, ex, ey)
+                local div = 10
+                if EntityHasTag(entity, "powder_stash") then
+                    div = 15
+                end
                 for matname, amount in pairs(_container_get_contents(entity)) do
-                    table.insert(contents, ("%s %d%%"):format(matname, amount/10))
+                    table.insert(contents, ("%s %d%%"):format(matname, amount/div))
                 end
                 if #contents > 0 then
                     line = line .. " with " .. table.concat(contents, ", ")
