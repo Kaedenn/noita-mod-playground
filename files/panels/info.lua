@@ -4,6 +4,8 @@ The "Info" Panel: Display interesting information
 
 TODO: Only display the primary biome of a biome group
 TODO: Draw health bars (only) when enabled
+TODO: Make rare_materials table configurable
+TODO: Make rare_entities table configurable
 --]]
 
 dofile("mods/kae_test/files/imguiutil.lua")
@@ -15,6 +17,7 @@ InfoPanel = {
     name = "Info",
     config = {
         range = math.huge,
+        rare_biome_mod = 0.2,
         rare_materials = {
             "creepy_liquid",
             "magic_liquid_hp_regeneration", -- Healthium
@@ -83,6 +86,18 @@ local function _biome_is_default(biome_name, modifier)
     return false
 end
 InfoPanel._private_funcs._biome_is_default = _biome_is_default
+
+--[[ Get a biome modifier by name ]]
+local function _biome_modifier_get(mod_name)
+    dofile("data/scripts/biome_modifiers.lua")
+    for _, entry in ipairs(biome_modifiers) do
+        if entry.ui_description == mod_name then
+            return entry
+        end
+    end
+    return nil
+end
+InfoPanel._private_funcs._biome_modifier_get = _biome_modifier_get
 
 --[[ True if entity is a child of root ]]
 local function _is_child_of(entity, root)
@@ -347,11 +362,13 @@ function InfoPanel:_get_biome_data()
         local biome_path = bdef.attr.biome_filename
         local biome_name = biome_path:match("^data/biome/(.*).xml$")
         local modifier = BiomeGetValue(biome_path, "mModifierUIDescription")
+        local mod_data = _biome_modifier_get(modifier) or {}
         if not _biome_is_default(biome_name, modifier) then
             biomes[biome_name] = {
                 name = biome_name, -- TODO: reliably determine localized name
                 path = biome_path,
                 modifier = modifier,
+                probability = mod_data.probability or 0,
                 text = GameTextGet(modifier),
             }
         end
@@ -581,10 +598,23 @@ function InfoPanel:init(environ, host)
     self.gui = GuiCreate()
     self.env.show_checkboxes = true
     self.env.manage_spells = false
+    self.env.manage_materials = false
+    self.env.manage_entities = false
     self.env.spell_list = {}
     self.env.wand_matches = {}
     self.env.card_matches = {}
     self.env.spell_add_multi = false
+
+    -- Preload spells from the list, preferring local over global
+    local spells_global = smallfolk.loads(self.host:load_value(self.id, "spell_list", "{}"))
+    local spells_local = smallfolk.loads(self.host:get_var(self.id, "spell_list", "{}"))
+    if #spells_local > 0 then
+        self.env.spell_list = spells_local
+        GamePrint(("Loaded %d spells from local table"):format(#self.env.spell_list))
+    elseif #spells_global > 0 then
+        self.env.spell_list = spells_global
+        GamePrint(("Loaded %d spells from global table"):format(#self.env.spell_list))
+    end
 
     return self
 end
@@ -595,10 +625,18 @@ function InfoPanel:draw_menu(imgui)
         if imgui.MenuItem("Toggle Checkboxes") then
             self.env.show_checkboxes = not self.env.show_checkboxes
         end
+        if imgui.MenuItem("Select Rare Materials") then
+            self.env.manage_materials = true
+        end
+        if imgui.MenuItem("Select Rare Entities") then
+            self.env.manage_entities = true
+        end
+        imgui.EndMenu()
+    end
+    if imgui.BeginMenu("Spells") then
         if imgui.MenuItem("Select Spells") then
             self.env.manage_spells = true
         end
-
         imgui.Separator()
         if imgui.MenuItem("Save Spell List (This Run)") then
             local data = smallfolk.dumps(self.env.spell_list)
@@ -670,13 +708,6 @@ function InfoPanel:_draw_spell_dropdown(imgui)
     if ret then
         self.env.spell_text = text
     end
-    --[[imgui.SameLine()
-    if self.env.spell_text ~= "" then
-        if imgui.SmallButton("Add###add_direct") then -- Override spell autocomplete
-            if not self.env.spell_add_multi then self.env.spell_text = "" end
-            table.insert(self.env.spell_list, {name=text, id=text:upper()})
-        end
-    end]]
     imgui.SameLine()
     if imgui.SmallButton("Done") then
         self.env.manage_spells = false
@@ -754,7 +785,12 @@ function InfoPanel:draw(imgui)
     if self.env.biome_list then
         --[[ Print all non-default biome modifiers ]]
         for bname, bdata in pairs(self.biomes) do
-            self.host:p(("%s: %s"):format(bdata.name, bdata.text))
+            line = ("%s: %s (%0.1f)"):format(bdata.name, bdata.text, bdata.probability)
+            if bdata.probability < self.config.rare_biome_mod then
+                self.host:p({line, color="yellow"})
+            else
+                self.host:p(line)
+            end
         end
         --[[ Debugging: print the unlocalized strings from above
         for bname, bdata in pairs(self.biomes) do
