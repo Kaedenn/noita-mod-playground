@@ -47,6 +47,28 @@ Panel = {
     colors = {          -- text color configuration
         enable = true,
         debug = {0.9, 0.9, 0.0},
+
+        names = {
+            -- Pure colors
+            red = {1, 0, 0},
+            green = {0, 1, 0},
+            blue = {0, 0, 1},
+            cyan = {0, 1, 1},
+            magenta = {1, 0, 1},
+            yellow = {1, 1, 0},
+            white = {1, 1, 1},
+            black = {0, 0, 0},
+
+            -- Blended colors
+            red_light = {1, 0.5, 0.5},
+            green_light = {0.5, 1, 0.5},
+            blue_light = {0.5, 0.5, 1},
+            cyan_light = {0.5, 1, 1},
+            magenta_light = {1, 0.5, 1},
+            yellow_light = {1, 1, 0.5},
+            gray = {0.5, 0.5, 0.5},
+            lightgray = {0.75, 0.75, 0.75},
+        },
     },
 
     -- host:p(host.separator) to print a horizontal line
@@ -361,6 +383,9 @@ function Panel:_draw_line(imgui, line)
         end
 
         if color ~= nil then
+            if type(color) == "string" then
+                color = self.colors.names[color] or {1, 1, 1}
+            end
             imgui.PushStyleColor(imgui.Col.Text, unpack(color))
         end
         for idx, token in ipairs(line) do
