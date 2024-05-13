@@ -1,5 +1,6 @@
 dofile_once("data/scripts/lib/utilities.lua")
 
+--[[ Interpret "0", "1", "true", "false" ]]
 function asboolean(value)
     if type(value) == "boolean" then return value end
     if type(value) == "number" then return value ~= 0 end
@@ -10,6 +11,7 @@ function asboolean(value)
     return nil
 end
 
+--[[ Reinterpret the given value as a specific type ]]
 function value_interpret(value, astype)
     if astype == nil then
         return tostring(value)
