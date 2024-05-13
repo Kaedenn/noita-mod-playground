@@ -11,6 +11,7 @@ TODO: Make rare_entities table configurable
 dofile("mods/kae_test/files/imguiutil.lua")
 nxml = dofile_once("mods/kae_test/files/lib/nxml.lua")
 smallfolk = dofile_once("mods/kae_test/files/lib/smallfolk.lua")
+EditList = dofile_once("mods/kae_test/files/lib/editable_list.lua")
 
 InfoPanel = {
     id = "info",
@@ -89,6 +90,7 @@ InfoPanel._private_funcs._biome_is_default = _biome_is_default
 
 --[[ Get a biome modifier by name ]]
 local function _biome_modifier_get(mod_name)
+    -- luacheck: globals biome_modifiers
     dofile("data/scripts/biome_modifiers.lua")
     for _, entry in ipairs(biome_modifiers) do
         if entry.ui_description == mod_name then
@@ -403,6 +405,25 @@ function InfoPanel:_want_spell(spell)
     return false
 end
 
+--[[ Get all of the known materials ]]
+function InfoPanel:_get_materials()
+    if not self.env.material_cache then
+        self.env.material_cache = {
+            liquids = CellFactory_GetAllLiquids(),
+            sands = CellFactory_GetAllSands(),
+            gases = CellFactory_GetAllGases(),
+            fires = CellFactory_GetAllFires(),
+            solids = CellFactory_GetAllSolids(),
+        }
+    end
+    return self.env.material_cache
+end
+
+--[[ Get all of the known entities ]]
+function InfoPanel:_get_entities()
+    -- TODO
+end
+
 --[[ Filter out entities that are children of the player or too far away ]]
 function InfoPanel:_filter_entries(entries)
     local results = {}
@@ -576,6 +597,42 @@ function InfoPanel:_draw_onscreen_gui()
     GuiIdPop(gui)
 end
 
+--[[ Initialize the various tables from their various places ]]
+function InfoPanel:_init_tables()
+    local tables = {
+        {"spell_list", "spells", {}},
+        {"material_list", "materials", self.config.rare_materials},
+        {"entity_list", "entities", self.config.rare_entities}
+    }
+
+    for _, entry in ipairs(tables) do
+        local var, name, default = unpack(entry)
+        -- Load from <lua_globals>
+        local sdata = self.host:get_var(self.id, var, "{}")
+        local data = smallfolk.loads(sdata)
+        local from_table = "local"
+        -- If that fails, load from ModSettings
+        if #data == 0 then
+            sdata = self.host:load_value(self.id, var, "{}")
+            data = smallfolk.loads(sdata)
+            from_table = "global"
+        end
+        -- If that fails, load from self.config
+        if #data == 0 then
+            data = {}
+            for _, item in ipairs(default) do
+                table.insert(data, {id=item, name=item})
+            end
+            from_table = "default"
+        end
+        if #data > 0 then
+            self.env[var] = data
+            self.host:print(("Loaded %d %s from %s table"):format(
+                #self.env[var], name, from_table))
+        end
+    end
+end
+
 --[[ Public: initialize the panel ]]
 function InfoPanel:init(environ, host)
     self.env = environ or self.env or {}
@@ -600,21 +657,31 @@ function InfoPanel:init(environ, host)
     self.env.manage_spells = false
     self.env.manage_materials = false
     self.env.manage_entities = false
+
+    self.env.material_cache = nil
+
+    self.env.material_liquid = true
+    self.env.material_sand = true
+    self.env.material_gas = false
+    self.env.material_fire = false
+    self.env.material_solid = false
+    self.env.material_list = {}
+    self.env.entity_list = {}
     self.env.spell_list = {}
     self.env.wand_matches = {}
     self.env.card_matches = {}
     self.env.spell_add_multi = false
 
-    -- Preload spells from the list, preferring local over global
-    local spells_global = smallfolk.loads(self.host:load_value(self.id, "spell_list", "{}"))
-    local spells_local = smallfolk.loads(self.host:get_var(self.id, "spell_list", "{}"))
-    if #spells_local > 0 then
-        self.env.spell_list = spells_local
-        GamePrint(("Loaded %d spells from local table"):format(#self.env.spell_list))
-    elseif #spells_global > 0 then
-        self.env.spell_list = spells_global
-        GamePrint(("Loaded %d spells from global table"):format(#self.env.spell_list))
+    local this = self
+    local wrapper = function() return this._init_tables(this) end
+    local on_error = function(errmsg)
+        self.host:print(errmsg)
+        if debug and debug.traceback then
+            self.host:print(debug.traceback())
+        end
     end
+    local res, ret = xpcall(wrapper, on_error)
+    if not res then self.host:print(ret) end
 
     return self
 end
@@ -625,17 +692,14 @@ function InfoPanel:draw_menu(imgui)
         if imgui.MenuItem("Toggle Checkboxes") then
             self.env.show_checkboxes = not self.env.show_checkboxes
         end
-        if imgui.MenuItem("Select Rare Materials") then
-            self.env.manage_materials = true
-        end
-        if imgui.MenuItem("Select Rare Entities") then
-            self.env.manage_entities = true
-        end
         imgui.EndMenu()
     end
+
     if imgui.BeginMenu("Spells") then
         if imgui.MenuItem("Select Spells") then
             self.env.manage_spells = true
+            self.env.manage_materials = false
+            self.env.manage_entities = false
         end
         imgui.Separator()
         if imgui.MenuItem("Save Spell List (This Run)") then
@@ -654,6 +718,7 @@ function InfoPanel:draw_menu(imgui)
         end
         if imgui.MenuItem("Clear Spell List (This Run)") then
             self.host:set_var(self.id, "spell_list", "{}")
+            GamePrint("Cleared spell list")
         end
 
         imgui.Separator()
@@ -676,6 +741,106 @@ function InfoPanel:draw_menu(imgui)
                 GamePrint("Cleared spell list")
             else
                 GamePrint("No spell list saved")
+            end
+        end
+        imgui.EndMenu()
+    end
+
+    if imgui.BeginMenu("Materials") then
+        if imgui.MenuItem("Select Rare Materials") then
+            self.env.manage_spells = false
+            self.env.manage_materials = true
+            self.env.manage_entities = false
+        end
+        imgui.Separator()
+        if imgui.MenuItem("Save Material List (This Run)") then
+            local data = smallfolk.dumps(self.env.material_list)
+            self.host:set_var(self.id, "material_list", data)
+            GamePrint(("Saved %d materials"):format(#self.env.material_list))
+        end
+        if imgui.MenuItem("Load Material List (This Run)") then
+            local data = self.host:get_var(self.id, "material_list", "")
+            if data ~= "" then
+                self.env.material_list = smallfolk.loads(data)
+                GamePrint(("Loaded %d materials"):format(#self.env.material_list))
+            else
+                GamePrint("No material list saved")
+            end
+        end
+        if imgui.MenuItem("Clear Material List (This Run)") then
+            self.host:set_var(self.id, "material_list", "{}")
+            GamePrint("Cleared material list")
+        end
+        imgui.Separator()
+        if imgui.MenuItem("Save Material List (Forever)") then
+            local data = smallfolk.dumps(self.env.material_list)
+            self.host:save_value(self.id, "material_list", data)
+            GamePrint(("Saved %d materials"):format(#self.env.material_list))
+        end
+        if imgui.MenuItem("Load Material List (Forever)") then
+            local data = self.host:load_value(self.id, "material_list", "")
+            if data ~= "" then
+                self.env.material_list = smallfolk.loads(data)
+                GamePrint(("Loaded %d materials"):format(#self.env.material_list))
+            else
+                GamePrint("No material list saved")
+            end
+        end
+        if imgui.MenuItem("Clear Material List (Forever)") then
+            if self.host:remove_value(self.id, "material_list") then
+                GamePrint("Cleared material list")
+            else
+                GamePrint("No material list saved")
+            end
+        end
+        imgui.EndMenu()
+    end
+
+    if imgui.BeginMenu("Entities") then
+        if imgui.MenuItem("Select Rare Entities") then
+            self.env.manage_spells = false
+            self.env.manage_materials = false
+            self.env.manage_entities = true
+        end
+        imgui.Separator()
+        if imgui.MenuItem("Save Entity List (This Run)") then
+            local data = smallfolk.dumps(self.env.entity_list)
+            self.host:set_var(self.id, "entity_list", data)
+            GamePrint(("Saved %d entities"):format(#self.env.entity_list))
+        end
+        if imgui.MenuItem("Load Entity List (This Run)") then
+            local data = self.host:get_var(self.id, "entity_list", "")
+            if data ~= "" then
+                self.env.entity_list = smallfolk.loads(data)
+                GamePrint(("Loaded %d entities"):format(#self.env.entity_list))
+            else
+                GamePrint("No entity list saved")
+            end
+        end
+        if imgui.MenuItem("Clear Entity List (This Run)") then
+            self.host:set_var(self.id, "entity_list", "{}")
+            GamePrint("Cleared entity list")
+        end
+        imgui.Separator()
+        if imgui.MenuItem("Save Entity List (Forever)") then
+            local data = smallfolk.dumps(self.env.entity_list)
+            self.host:save_value(self.id, "entity_list", data)
+            GamePrint(("Saved %d entities"):format(#self.env.entity_list))
+        end
+        if imgui.MenuItem("Load Entity List (Forever)") then
+            local data = self.host:load_value(self.id, "entity_list", "")
+            if data ~= "" then
+                self.env.entity_list = smallfolk.loads(data)
+                GamePrint(("Loaded %d entities"):format(#self.env.entity_list))
+            else
+                GamePrint("No entity list saved")
+            end
+        end
+        if imgui.MenuItem("Clear Entity List (Forever)") then
+            if self.host:remove_value(self.id, "entity_list") then
+                GamePrint("Cleared entity list")
+            else
+                GamePrint("No entity list saved")
             end
         end
         imgui.EndMenu()
@@ -704,16 +869,14 @@ function InfoPanel:_draw_spell_dropdown(imgui)
     if not self.env.spell_text then self.env.spell_text = "" end
     local ret, text = false, self.env.spell_text
     imgui.SetNextItemWidth(400)
-    ret, text = imgui.InputText("Spell", text)
-    if ret then
-        self.env.spell_text = text
-    end
+    ret, text = imgui.InputText("Spell###spell_input", text)
+    if ret then self.env.spell_text = text end
     imgui.SameLine()
-    if imgui.SmallButton("Done") then
+    if imgui.SmallButton("Done###spell_done") then
         self.env.manage_spells = false
     end
     imgui.SameLine()
-    _, self.env.spell_add_multi = imgui.Checkbox("Multi", self.env.spell_add_multi)
+    _, self.env.spell_add_multi = imgui.Checkbox("Multi###spell_multi", self.env.spell_add_multi)
 
     if self.env.spell_text ~= "" then
         local spell_list = self:_get_spell_list()
@@ -746,14 +909,13 @@ function InfoPanel:_draw_spell_dropdown(imgui)
             end
         end
     end
-
 end
 
 function InfoPanel:_draw_spell_list(imgui)
     local to_remove = nil
     local flags = bit.bor(
         imgui.WindowFlags.HorizontalScrollbar)
-    if imgui.BeginChild("Spell List", 0, 0, false, flags) then
+    if imgui.BeginChild("Spell List###spell_list", 0, 0, true, flags) then
         for idx, entry in ipairs(self.env.spell_list) do
             if imgui.SmallButton("Remove###remove_" .. entry.id) then
                 to_remove = idx
@@ -769,6 +931,107 @@ function InfoPanel:_draw_spell_list(imgui)
         if to_remove ~= nil then
             table.remove(self.env.spell_list, to_remove)
         end
+        imgui.EndChild()
+    end
+end
+
+function InfoPanel:_draw_material_dropdown(imgui)
+    if not self.env.material_text then self.env.material_text = "" end
+    local ret, text = false, self.env.material_text
+    imgui.SetNextItemWidth(400)
+    ret, text = imgui.InputText("Material###material_input", text)
+    if ret then self.env.material_text = text end
+    imgui.SameLine()
+    if imgui.SmallButton("Done###material_done") then
+        self.env.manage_materials = false
+    end
+    imgui.SameLine()
+    _, self.env.material_add_multi = imgui.Checkbox("Multi###material_multi", self.env.material_add_multi)
+
+    local kinds = {
+        {"Liquids", "material_liquid"},
+        {"Sands", "material_sand"},
+        {"Gases", "material_gas"},
+        {"Fires", "material_fire"},
+        {"Solids", "material_solid"},
+    }
+    for idx, kind in ipairs(kinds) do
+        local label, var = unpack(kind)
+        if idx ~= 1 then imgui.SameLine() end
+        imgui.SetNextItemWidth(80)
+        _, self.env[var] = imgui.Checkbox(label .. "###" .. var, self.env[var])
+    end
+
+    if self.env.material_text ~= "" then
+        local mattabs = self:_get_materials()
+        -- TODO
+    end
+end
+
+function InfoPanel:_draw_material_list(imgui)
+    local to_remove = nil
+    local flags = bit.bor(
+        imgui.WindowFlags.HorizontalScrollbar)
+    if imgui.BeginChild("Material List###material_list", 0, 0, true, flags) then
+        for idx, entry in ipairs(self.env.material_list) do
+            if imgui.SmallButton("Remove###remove_" .. entry.id) then
+                to_remove = idx
+            end
+            imgui.SameLine()
+            local label = entry.name
+            if label:match("^[$]") then
+                label = GameTextGet(entry.name)
+                if not label or label == "" then label = entry.name end
+            end
+            imgui.Text(("%s [%s]"):format(label, entry.id))
+        end
+        if to_remove ~= nil then
+            table.remove(self.env.material_list, to_remove)
+        end
+        imgui.EndChild()
+    end
+end
+
+function InfoPanel:_draw_entity_dropdown(imgui)
+    if not self.env.entity_text then self.env.entity_text = "" end
+    local ret, text = false, self.env.entity_text
+    imgui.SetNextItemWidth(400)
+    ret, text = imgui.InputText("Spell###entity_input", text)
+    if ret then self.env.entity_text = text end
+    imgui.SameLine()
+    if imgui.SmallButton("Done###entity_done") then
+        self.env.manage_entitys = false
+    end
+    imgui.SameLine()
+    _, self.env.entity_add_multi = imgui.Checkbox("Multi###entity_multi", self.env.entity_add_multi)
+
+    if self.env.entity_text ~= "" then
+        local enttab = self:_get_entities()
+        -- TODO
+    end
+end
+
+function InfoPanel:_draw_entity_list(imgui)
+    local to_remove = nil
+    local flags = bit.bor(
+        imgui.WindowFlags.HorizontalScrollbar)
+    if imgui.BeginChild("Entity List###entity_list", 0, 0, true, flags) then
+        for idx, entry in ipairs(self.env.entity_list) do
+            if imgui.SmallButton("Remove###remove_" .. entry.id) then
+                to_remove = idx
+            end
+            imgui.SameLine()
+            local label = entry.name
+            if label:match("^[$]") then
+                label = GameTextGet(entry.name)
+                if not label or label == "" then label = entry.name end
+            end
+            imgui.Text(("%s [%s]"):format(label, entry.id))
+        end
+        if to_remove ~= nil then
+            table.remove(self.env.entity_list, to_remove)
+        end
+        imgui.EndChild()
     end
 end
 
@@ -780,6 +1043,16 @@ function InfoPanel:draw(imgui)
     if self.env.manage_spells then
         self:_draw_spell_dropdown(imgui)
         self:_draw_spell_list(imgui)
+    end
+
+    if self.env.manage_materials then
+        self:_draw_material_dropdown(imgui)
+        self:_draw_material_list(imgui)
+    end
+
+    if self.env.manage_entities then
+        self:_draw_entity_dropdown(imgui)
+        self:_draw_entity_list(imgui)
     end
 
     if self.env.biome_list then

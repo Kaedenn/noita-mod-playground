@@ -2,10 +2,10 @@
 
 dofile_once("data/scripts/lib/mod_settings.lua")
 
-dofile("mods/kae_test/files/logging.lua")
-dofile("mods/kae_test/files/imguiutil.lua")
-dofile("mods/kae_test/files/functions.lua")
-dofile("mods/kae_test/config.lua")
+--dofile_once("mods/kae_test/files/logging.lua")
+dofile_once("mods/kae_test/files/imguiutil.lua")
+dofile_once("mods/kae_test/files/functions.lua")
+dofile_once("mods/kae_test/config.lua")
 
 KPanelLib = dofile("mods/kae_test/files/panel.lua")
 KPanel = nil
@@ -41,7 +41,10 @@ function _build_gui()
         end
         local panel_result, panel_value = pcall(runner)
         if not panel_result then
+            imgui.Text("ERROR:")
+            imgui.SameLine()
             imgui.Text(tostring(panel_value))
+            GamePrint(tostring(panel_value))
         end
     end
 end
@@ -54,7 +57,7 @@ end
 
 function OnWorldPostUpdate()
     if not imgui then
-        imgui = load_imgui({version="1.14.2", mod="kae_test"})
+        imgui = load_imgui({version="1.14.2", mod=MOD_ID})
     end
 
     if conf_get(CONF.ENABLE) then
@@ -71,10 +74,11 @@ function OnWorldPostUpdate()
         end
 
         if imgui.Begin("Kae", nil, bit.bor(
-            imgui.WindowFlags.NoFocusOnAppearing,
-            imgui.WindowFlags.MenuBar,
+            --imgui.WindowFlags.NoFocusOnAppearing,
             --imgui.WindowFlags.NoNavInputs,
-            imgui.WindowFlags.HorizontalScrollbar))
+            --imgui.WindowFlags.HorizontalScrollbar,
+            imgui.WindowFlags.MenuBar
+            ))
         then
             local res, val
             res, val = pcall(_build_menu_bar_gui)
@@ -82,10 +86,8 @@ function OnWorldPostUpdate()
             res, val = pcall(_build_gui)
             if not res then GamePrint(tostring(val)) end
             imgui.End()
-        else
-            if KPanel then
-                KPanel:draw_closed(imgui)
-            end
+        elseif KPanel then
+            KPanel:draw_closed(imgui)
         end
     end
 

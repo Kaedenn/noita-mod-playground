@@ -238,6 +238,12 @@ function Panel:text_clear()
     end
 end
 
+--[[ Print text to both the panel and to the game ]]
+function Panel:print(msg)
+    self:p(msg)
+    GamePrint(msg)
+end
+
 --[[ True if the given panel ID refers to a known Panel object ]]
 function Panel:is(pid)
     return self.PANELS[pid] ~= nil
@@ -304,9 +310,11 @@ function Panel:save_value(pid, varname, value)
 end
 
 --[[ Load a value from mod settings ]]
-function Panel:load_value(pid, varname)
+function Panel:load_value(pid, varname, default)
     local key = ("%s.panel_%s_%s"):format(MOD_ID, pid, varname)
-    return ModSettingGet(key)
+    local value = ModSettingGet(key)
+    if value == nil then return default end
+    return value
 end
 
 --[[ Remove a value from mod settings ]]
@@ -436,13 +444,8 @@ function Panel:draw(imgui)
         imgui.PopID()
     end
 
-    local flags = bit.bor(
-        imgui.WindowFlags.HorizontalScrollbar)
-    if imgui.BeginChild("Output###panel_main", 0, 0, false, flags) then
-        for _, line in ipairs(self.lines) do
-            self:_draw_line(imgui, line)
-        end
-        imgui.EndChild()
+    for _, line in ipairs(self.lines) do
+        self:_draw_line(imgui, line)
     end
 end
 
