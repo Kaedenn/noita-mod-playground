@@ -152,7 +152,7 @@ def main():
     type_counts[kind] += 1
     entities[kind].append(data)
 
-  logger.debug("Processed %d files (%d failures)", count, len(failures))
+  logger.info("Processed %d files (%d failures)", count, len(failures))
   logger.debug("Counts: %s", dict(type_counts))
 
   output = args.output

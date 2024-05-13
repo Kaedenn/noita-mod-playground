@@ -50,6 +50,12 @@ animals = {
         path = "entities/animals/slimeshooter.xml",
         tags = "",
     },
+    ["slimespirit"] = {
+        file = "slimespirit.xml",
+        name = "$animal_slimespirit",
+        path = "entities/animals/slimespirit.xml",
+        tags = "glue_NOT",
+    },
     ["ghost"] = {
         file = "ghost.xml",
         name = "$animal_ghost",
@@ -110,6 +116,12 @@ animals = {
         path = "entities/animals/wizard_returner.xml",
         tags = "",
     },
+    ["berserkspirit"] = {
+        file = "berserkspirit.xml",
+        name = "$animal_berserkspirit",
+        path = "entities/animals/berserkspirit.xml",
+        tags = "glue_NOT",
+    },
     ["phantom_b"] = {
         file = "phantom_b.xml",
         name = "$animal_phantom_b",
@@ -168,6 +180,12 @@ animals = {
         file = "crystal_physics.xml",
         name = "$animal_crystal_physics",
         path = "entities/animals/crystal_physics.xml",
+        tags = "glue_NOT",
+    },
+    ["confusespirit"] = {
+        file = "confusespirit.xml",
+        name = "$animal_confusespirit",
+        path = "entities/animals/confusespirit.xml",
         tags = "glue_NOT",
     },
     ["wand_ghost_charmed"] = {
@@ -242,6 +260,18 @@ animals = {
         path = "entities/animals/bat.xml",
         tags = "",
     },
+    ["nibbana"] = {
+        file = "nibbana.xml",
+        name = "$animal_player",
+        path = "entities/animals/nibbana.xml",
+        tags = "polymorphed_cessation",
+    },
+    ["miner_hell"] = {
+        file = "miner_hell.xml",
+        name = "$animal_miner_hell",
+        path = "entities/animals/miner_hell.xml",
+        tags = "",
+    },
     ["necrobot"] = {
         file = "necrobot.xml",
         name = "$animal_necrobot",
@@ -308,6 +338,12 @@ animals = {
         path = "entities/animals/bigfirebug.xml",
         tags = "",
     },
+    ["weakspirit"] = {
+        file = "weakspirit.xml",
+        name = "$animal_weakspirit",
+        path = "entities/animals/weakspirit.xml",
+        tags = "glue_NOT",
+    },
     ["frog"] = {
         file = "frog.xml",
         name = "$animal_frog",
@@ -348,6 +384,12 @@ animals = {
         file = "assassin.xml",
         name = "$animal_assassin",
         path = "entities/animals/assassin.xml",
+        tags = "",
+    },
+    ["shotgunner_hell"] = {
+        file = "shotgunner_hell.xml",
+        name = "$animal_shotgunner_hell",
+        path = "entities/animals/shotgunner_hell.xml",
         tags = "",
     },
     ["_test_walk"] = {
@@ -422,6 +464,12 @@ animals = {
         path = "entities/animals/wizard_tele.xml",
         tags = "",
     },
+    ["mimic_potion"] = {
+        file = "mimic_potion.xml",
+        name = "$animal_mimic_potion",
+        path = "entities/animals/mimic_potion.xml",
+        tags = "glue_NOT,mimic_potion",
+    },
     ["statue"] = {
         file = "statue.xml",
         name = "$animal_statue",
@@ -470,6 +518,12 @@ animals = {
         path = "entities/animals/pebble_physics.xml",
         tags = "glue_NOT",
     },
+    ["sniper_hell"] = {
+        file = "sniper_hell.xml",
+        name = "$animal_sniper_hell",
+        path = "entities/animals/sniper_hell.xml",
+        tags = "",
+    },
     ["tank_super"] = {
         file = "tank_super.xml",
         name = "$animal_tank",
@@ -517,6 +571,12 @@ animals = {
         name = "$animal_skullfly",
         path = "entities/animals/skullfly.xml",
         tags = "",
+    },
+    ["scorpion_watchtower"] = {
+        file = "scorpion_watchtower.xml",
+        name = "$animal_scorpion",
+        path = "entities/animals/scorpion_watchtower.xml",
+        tags = "mortal,prey",
     },
     ["necromancer"] = {
         file = "necromancer.xml",
@@ -577,6 +637,12 @@ animals = {
         name = "$animal_firebug",
         path = "entities/animals/firebug.xml",
         tags = "",
+    },
+    ["wand_ghost_with_sampo"] = {
+        file = "wand_ghost_with_sampo.xml",
+        name = "$animal_wand_ghost",
+        path = "entities/animals/wand_ghost_with_sampo.xml",
+        tags = "mortal,hittable,homing_target,wand_ghost,this_is_sampo",
     },
     ["lurker"] = {
         file = "lurker.xml",
@@ -697,6 +763,12 @@ animals = {
         name = "$animal_firemage",
         path = "entities/animals/firemage.xml",
         tags = "firemage",
+    },
+    ["meatmaggot"] = {
+        file = "meatmaggot.xml",
+        name = "$animal_meatmaggot",
+        path = "entities/animals/meatmaggot.xml",
+        tags = "mortal,hittable,teleportable_NOT,homing_target,enemy,worm,glue_NOT",
     },
     ["monk"] = {
         file = "monk.xml",
@@ -943,6 +1015,30 @@ animals = {
         name = "$animal_slimeshooter_boss_limbs",
         path = "entities/animals/boss_limbs/slimeshooter_boss_limbs.xml",
         tags = "slimeshooter_boss_limbs",
+    },
+    ["boss_sky"] = {
+        file = "boss_sky.xml",
+        name = "$animal_boss_sky",
+        path = "entities/animals/boss_sky/boss_sky.xml",
+        tags = "enemy,mortal,human,hittable,homing_target,teleportable_NOT,boss,polymorphable_NOT,miniboss,music_energy_000,necrobot_NOT,glue_NOT,touchmagic_immunity",
+    },
+    ["boss_sky_phase2_marker"] = {
+        file = "boss_sky_phase2_marker.xml",
+        name = "",
+        path = "entities/animals/boss_sky/boss_sky_phase2_marker.xml",
+        tags = "boss_phase2_marker",
+    },
+    ["boss_sky_damage"] = {
+        file = "boss_sky_damage.xml",
+        name = "",
+        path = "entities/animals/boss_sky/boss_sky_damage.xml",
+        tags = "",
+    },
+    ["apparition_spawn_fx"] = {
+        file = "apparition_spawn_fx.xml",
+        name = "",
+        path = "entities/animals/boss_sky/apparition_spawn_fx.xml",
+        tags = "miniboss,music_energy_50",
     },
     ["tentacle_verlet_4"] = {
         file = "tentacle_verlet_4.xml",
@@ -1652,6 +1748,48 @@ animals = {
         path = "entities/animals/illusions/acidshooter.xml",
         tags = "glue_NOT",
     },
+    ["shaman_wind"] = {
+        file = "shaman_wind.xml",
+        name = "$animal_shaman_wind",
+        path = "entities/animals/illusions/shaman_wind.xml",
+        tags = "",
+    },
+    ["islandspirit"] = {
+        file = "islandspirit.xml",
+        name = "$animal_islandspirit",
+        path = "entities/animals/boss_spirit/islandspirit.xml",
+        tags = "touchmagic_immunity,polymorphable_NOT,boss,miniboss,music_energy_100,necrobot_NOT,glue_NOT,curse_NOT,islandspirit",
+    },
+    ["spawn_portal"] = {
+        file = "spawn_portal.xml",
+        name = "",
+        path = "entities/animals/boss_spirit/spawn_portal.xml",
+        tags = "",
+    },
+    ["boss_spirit_sprite"] = {
+        file = "boss_spirit_sprite.xml",
+        name = "",
+        path = "entities/animals/boss_spirit/boss_spirit_sprite.xml",
+        tags = "",
+    },
+    ["orb"] = {
+        file = "orb.xml",
+        name = "$projectile_default",
+        path = "entities/animals/boss_spirit/orb.xml",
+        tags = "boss_alchemist",
+    },
+    ["spawner"] = {
+        file = "spawner.xml",
+        name = "",
+        path = "entities/animals/boss_spirit/spawner.xml",
+        tags = "",
+    },
+    ["countered_projectile_effect"] = {
+        file = "countered_projectile_effect.xml",
+        name = "",
+        path = "entities/animals/boss_spirit/countered_projectile_effect.xml",
+        tags = "",
+    },
     ["hair3"] = {
         file = "hair3.xml",
         name = "",
@@ -1848,6 +1986,78 @@ animals = {
         file = "orb_death.xml",
         name = "",
         path = "entities/animals/boss_wizard/orb_death.xml",
+        tags = "",
+    },
+    ["hair3"] = {
+        file = "hair3.xml",
+        name = "",
+        path = "entities/animals/boss_meat/hair3.xml",
+        tags = "",
+    },
+    ["orb_big"] = {
+        file = "orb_big.xml",
+        name = "$projectile_default",
+        path = "entities/animals/boss_meat/orb_big.xml",
+        tags = "",
+    },
+    ["hair1"] = {
+        file = "hair1.xml",
+        name = "",
+        path = "entities/animals/boss_meat/hair1.xml",
+        tags = "",
+    },
+    ["hair_piece"] = {
+        file = "hair_piece.xml",
+        name = "",
+        path = "entities/animals/boss_meat/hair_piece.xml",
+        tags = "",
+    },
+    ["hair_piece_thin"] = {
+        file = "hair_piece_thin.xml",
+        name = "",
+        path = "entities/animals/boss_meat/hair_piece_thin.xml",
+        tags = "",
+    },
+    ["hair2"] = {
+        file = "hair2.xml",
+        name = "",
+        path = "entities/animals/boss_meat/hair2.xml",
+        tags = "",
+    },
+    ["body"] = {
+        file = "body.xml",
+        name = "",
+        path = "entities/animals/boss_meat/body.xml",
+        tags = "",
+    },
+    ["boss_meat"] = {
+        file = "boss_meat.xml",
+        name = "$animal_boss_meat",
+        path = "entities/animals/boss_meat/boss_meat.xml",
+        tags = "enemy,mortal,human,hittable,homing_target,teleportable_NOT,boss,polymorphable_NOT,miniboss,music_energy_100,necrobot_NOT,glue_NOT",
+    },
+    ["limb_a"] = {
+        file = "limb_a.xml",
+        name = "",
+        path = "entities/animals/boss_meat/limb_a.xml",
+        tags = "",
+    },
+    ["limb_b"] = {
+        file = "limb_b.xml",
+        name = "",
+        path = "entities/animals/boss_meat/limb_b.xml",
+        tags = "",
+    },
+    ["limb"] = {
+        file = "limb.xml",
+        name = "",
+        path = "entities/animals/boss_meat/limb.xml",
+        tags = "",
+    },
+    ["knee"] = {
+        file = "knee.xml",
+        name = "",
+        path = "entities/animals/boss_meat/knee.xml",
         tags = "",
     },
     ["blob"] = {
@@ -2394,6 +2604,12 @@ animals = {
         file = "lukki_limb_tiny.xml",
         name = "",
         path = "entities/animals/lukki/lukki_feet/lukki_limb_tiny.xml",
+        tags = "",
+    },
+    ["lukki_limb_tiny_dark_animated"] = {
+        file = "lukki_limb_tiny_dark_animated.xml",
+        name = "",
+        path = "entities/animals/lukki/lukki_feet/lukki_limb_tiny_dark_animated.xml",
         tags = "",
     },
     ["lukki_limb_minion"] = {
@@ -2982,6 +3198,12 @@ buildings = {
         path = "entities/buildings/statue_hand_3.xml",
         tags = "statue_hand_3,statue_hand",
     },
+    ["wallmouth"] = {
+        file = "wallmouth.xml",
+        name = "",
+        path = "entities/buildings/wallmouth.xml",
+        tags = "glue_NOT,polymorphable_NOT,curse_NOT",
+    },
     ["teleport"] = {
         file = "teleport.xml",
         name = "",
@@ -3552,6 +3774,12 @@ buildings = {
         path = "entities/buildings/hourglass_music.xml",
         tags = "hourglass_entity",
     },
+    ["walleye"] = {
+        file = "walleye.xml",
+        name = "",
+        path = "entities/buildings/walleye.xml",
+        tags = "glue_NOT,polymorphable_NOT,curse_NOT",
+    },
     ["lasergate_right"] = {
         file = "lasergate_right.xml",
         name = "",
@@ -3755,6 +3983,12 @@ buildings = {
         name = "",
         path = "entities/buildings/temple_areacheck_horizontal.xml",
         tags = "temple_areachecker",
+    },
+    ["huussi"] = {
+        file = "huussi.xml",
+        name = "",
+        path = "entities/buildings/huussi.xml",
+        tags = "",
     },
     ["music_trigger_mountain_left_entrance"] = {
         file = "music_trigger_mountain_left_entrance.xml",
@@ -3990,6 +4224,12 @@ buildings = {
         path = "entities/buildings/null_room/check1.xml",
         tags = "",
     },
+    ["poly_hitbox"] = {
+        file = "poly_hitbox.xml",
+        name = "",
+        path = "entities/buildings/null_room/poly_hitbox.xml",
+        tags = "no_polymorphing_allowed",
+    },
 }, -- end of buildings
 items = {
     ["wand_level_01"] = {
@@ -4093,6 +4333,12 @@ items = {
         name = "",
         path = "entities/items/wand_level_03_p.xml",
         tags = "",
+    },
+    ["wand_leukaluu"] = {
+        file = "wand_leukaluu.xml",
+        name = "",
+        path = "entities/items/wand_leukaluu.xml",
+        tags = "teleportable_NOT,item,wand,leukaluu,forgeable",
     },
     ["wand_level_05_p"] = {
         file = "wand_level_05_p.xml",
@@ -4298,6 +4544,12 @@ items = {
         path = "entities/items/wand_unshuffle_05.xml",
         tags = "",
     },
+    ["leukaluu_kantele"] = {
+        file = "leukaluu_kantele.xml",
+        name = "",
+        path = "entities/items/leukaluu_kantele.xml",
+        tags = "teleportable_NOT,item,wand",
+    },
     ["wand_unshuffle_10"] = {
         file = "wand_unshuffle_10.xml",
         name = "",
@@ -4332,7 +4584,7 @@ items = {
         file = "kantele.xml",
         name = "",
         path = "entities/items/kantele.xml",
-        tags = "",
+        tags = "teleportable_NOT,item,wand,kantele",
     },
     ["wand_unshuffle_06_p"] = {
         file = "wand_unshuffle_06_p.xml",
@@ -4453,6 +4705,12 @@ items = {
         name = "",
         path = "entities/items/books/base_forged.xml",
         tags = "tablet,forged_tablet",
+    },
+    ["book_barren"] = {
+        file = "book_barren.xml",
+        name = "",
+        path = "entities/items/books/book_barren.xml",
+        tags = "scroll",
     },
     ["book_diamond"] = {
         file = "book_diamond.xml",
@@ -4730,6 +4988,12 @@ items = {
         path = "entities/items/wands/level_01/wand_010.xml",
         tags = "teleportable_NOT,item,wand",
     },
+    ["experimental_wand_4"] = {
+        file = "experimental_wand_4.xml",
+        name = "",
+        path = "entities/items/wands/experimental/experimental_wand_4.xml",
+        tags = "wand",
+    },
     ["experimental_wand_1"] = {
         file = "experimental_wand_1.xml",
         name = "",
@@ -4838,6 +5102,12 @@ items = {
         path = "entities/items/pickup/potion_aggressive.xml",
         tags = "projectile_item",
     },
+    ["potion_mimic"] = {
+        file = "potion_mimic.xml",
+        name = "",
+        path = "entities/items/pickup/potion_mimic.xml",
+        tags = "teleportable_NOT,item_physics,item_pickup,effectable_prop",
+    },
     ["potion_secret"] = {
         file = "potion_secret.xml",
         name = "",
@@ -4849,6 +5119,12 @@ items = {
         name = "",
         path = "entities/items/pickup/egg_slime.xml",
         tags = "hittable,teleportable_NOT,item_physics,egg_item,item_pickup",
+    },
+    ["give_all_perks"] = {
+        file = "give_all_perks.xml",
+        name = "",
+        path = "entities/items/pickup/give_all_perks.xml",
+        tags = "",
     },
     ["moon"] = {
         file = "moon.xml",
@@ -4916,6 +5192,12 @@ items = {
         path = "entities/items/pickup/bloodmoney_1000.xml",
         tags = "item_physics,gold_nugget",
     },
+    ["utility_box"] = {
+        file = "utility_box.xml",
+        name = "",
+        path = "entities/items/pickup/utility_box.xml",
+        tags = "teleportable_NOT,item_physics,utility_box,item_pickup,effectable_prop",
+    },
     ["physics_gold_orb"] = {
         file = "physics_gold_orb.xml",
         name = "unknown",
@@ -4957,6 +5239,12 @@ items = {
         name = "",
         path = "entities/items/pickup/heart_better.xml",
         tags = "drillable,hittable,teleportable_NOT,item_pickup",
+    },
+    ["potion_milk"] = {
+        file = "potion_milk.xml",
+        name = "",
+        path = "entities/items/pickup/potion_milk.xml",
+        tags = "",
     },
     ["essence_air"] = {
         file = "essence_air.xml",
@@ -5101,6 +5389,12 @@ items = {
         name = "",
         path = "entities/items/pickup/evil_eye.xml",
         tags = "hittable,teleportable_NOT,item_physics,item_pickup,evil_eye",
+    },
+    ["potion_beer"] = {
+        file = "potion_beer.xml",
+        name = "",
+        path = "entities/items/pickup/potion_beer.xml",
+        tags = "",
     },
     ["perk"] = {
         file = "perk.xml",
@@ -5396,6 +5690,18 @@ misc = {
         file = "moon_effect2.xml",
         name = "",
         path = "entities/misc/moon_effect2.xml",
+        tags = "",
+    },
+    ["effect_spirit_confusion"] = {
+        file = "effect_spirit_confusion.xml",
+        name = "",
+        path = "entities/misc/effect_spirit_confusion.xml",
+        tags = "spirit_confuse",
+    },
+    ["effect_polymorph_cessation"] = {
+        file = "effect_polymorph_cessation.xml",
+        name = "",
+        path = "entities/misc/effect_polymorph_cessation.xml",
         tags = "",
     },
     ["homing_rotate"] = {
@@ -5710,6 +6016,12 @@ misc = {
         path = "entities/misc/larpa_upwards.xml",
         tags = "",
     },
+    ["clusterbomb"] = {
+        file = "clusterbomb.xml",
+        name = "",
+        path = "entities/misc/clusterbomb.xml",
+        tags = "",
+    },
     ["effect_trip_00"] = {
         file = "effect_trip_00.xml",
         name = "",
@@ -5812,6 +6124,12 @@ misc = {
         path = "entities/misc/effect_curse_rain.xml",
         tags = "",
     },
+    ["hitfx_healhurt"] = {
+        file = "hitfx_healhurt.xml",
+        name = "",
+        path = "entities/misc/hitfx_healhurt.xml",
+        tags = "",
+    },
     ["colour_green"] = {
         file = "colour_green.xml",
         name = "",
@@ -5860,6 +6178,12 @@ misc = {
         path = "entities/misc/arc_gunpowder.xml",
         tags = "",
     },
+    ["caster_cast"] = {
+        file = "caster_cast.xml",
+        name = "",
+        path = "entities/misc/caster_cast.xml",
+        tags = "",
+    },
     ["quantum_split_fx_blue"] = {
         file = "quantum_split_fx_blue.xml",
         name = "",
@@ -5876,6 +6200,12 @@ misc = {
         file = "loose_ground_permanent.xml",
         name = "",
         path = "entities/misc/loose_ground_permanent.xml",
+        tags = "",
+    },
+    ["effect_no_heal"] = {
+        file = "effect_no_heal.xml",
+        name = "",
+        path = "entities/misc/effect_no_heal.xml",
         tags = "",
     },
     ["effect_healing_blood"] = {
@@ -5930,7 +6260,7 @@ misc = {
         file = "rock_curse.xml",
         name = "workshop_altar",
         path = "entities/misc/rock_curse.xml",
-        tags = "",
+        tags = "no_swap",
     },
     ["effect_protection_during_teleport"] = {
         file = "effect_protection_during_teleport.xml",
@@ -6016,6 +6346,12 @@ misc = {
         path = "entities/misc/fogofwar_radius.xml",
         tags = "",
     },
+    ["effect_no_heal_in_meat_biome"] = {
+        file = "effect_no_heal_in_meat_biome.xml",
+        name = "",
+        path = "entities/misc/effect_no_heal_in_meat_biome.xml",
+        tags = "no_heal_in_meat_biome",
+    },
     ["crack"] = {
         file = "crack.xml",
         name = "",
@@ -6076,6 +6412,12 @@ misc = {
         path = "entities/misc/arc_electric.xml",
         tags = "",
     },
+    ["material_converter_freeze"] = {
+        file = "material_converter_freeze.xml",
+        name = "",
+        path = "entities/misc/material_converter_freeze.xml",
+        tags = "",
+    },
     ["dummy_entity"] = {
         file = "dummy_entity.xml",
         name = "",
@@ -6094,6 +6436,12 @@ misc = {
         path = "entities/misc/loose_chunks.xml",
         tags = "",
     },
+    ["effect_healhurt"] = {
+        file = "effect_healhurt.xml",
+        name = "",
+        path = "entities/misc/effect_healhurt.xml",
+        tags = "",
+    },
     ["spells_to_power"] = {
         file = "spells_to_power.xml",
         name = "",
@@ -6104,6 +6452,12 @@ misc = {
         file = "effect_oiled.xml",
         name = "",
         path = "entities/misc/effect_oiled.xml",
+        tags = "",
+    },
+    ["true_orbit"] = {
+        file = "true_orbit.xml",
+        name = "",
+        path = "entities/misc/true_orbit.xml",
         tags = "",
     },
     ["spawn_necromancer_shop"] = {
@@ -6196,6 +6550,12 @@ misc = {
         path = "entities/misc/effect_slow_bullets.xml",
         tags = "",
     },
+    ["zero_damage"] = {
+        file = "zero_damage.xml",
+        name = "",
+        path = "entities/misc/zero_damage.xml",
+        tags = "",
+    },
     ["convert_radioactive_with_delay"] = {
         file = "convert_radioactive_with_delay.xml",
         name = "",
@@ -6256,6 +6616,12 @@ misc = {
         path = "entities/misc/hitfx_critical_water.xml",
         tags = "",
     },
+    ["anti_homing"] = {
+        file = "anti_homing.xml",
+        name = "",
+        path = "entities/misc/anti_homing.xml",
+        tags = "",
+    },
     ["effect_weaken"] = {
         file = "effect_weaken.xml",
         name = "",
@@ -6278,6 +6644,12 @@ misc = {
         file = "remove_bounce.xml",
         name = "",
         path = "entities/misc/remove_bounce.xml",
+        tags = "",
+    },
+    ["fast_movement_explosion_large"] = {
+        file = "fast_movement_explosion_large.xml",
+        name = "$projectile_default",
+        path = "entities/misc/fast_movement_explosion_large.xml",
         tags = "",
     },
     ["hitfx_explode_alcohol_giga"] = {
@@ -6382,6 +6754,12 @@ misc = {
         path = "entities/misc/hitfx_curse.xml",
         tags = "",
     },
+    ["utility_rain"] = {
+        file = "utility_rain.xml",
+        name = "",
+        path = "entities/misc/utility_rain.xml",
+        tags = "",
+    },
     ["effect_confusion"] = {
         file = "effect_confusion.xml",
         name = "",
@@ -6394,10 +6772,28 @@ misc = {
         path = "entities/misc/monk_arms_standalone.xml",
         tags = "",
     },
+    ["just_death_effect"] = {
+        file = "just_death_effect.xml",
+        name = "",
+        path = "entities/misc/just_death_effect.xml",
+        tags = "projectile_player",
+    },
+    ["effect_protection_food_poisoning"] = {
+        file = "effect_protection_food_poisoning.xml",
+        name = "",
+        path = "entities/misc/effect_protection_food_poisoning.xml",
+        tags = "effect_protection",
+    },
     ["effect_apply_oiled"] = {
         file = "effect_apply_oiled.xml",
         name = "",
         path = "entities/misc/effect_apply_oiled.xml",
+        tags = "",
+    },
+    ["homing_wand"] = {
+        file = "homing_wand.xml",
+        name = "",
+        path = "entities/misc/homing_wand.xml",
         tags = "",
     },
     ["hitfx_petrify"] = {
@@ -6448,10 +6844,22 @@ misc = {
         path = "entities/misc/effect_trip_03.xml",
         tags = "tripping_extreme",
     },
+    ["bounce_hole"] = {
+        file = "bounce_hole.xml",
+        name = "",
+        path = "entities/misc/bounce_hole.xml",
+        tags = "",
+    },
     ["laser_emitter_ray"] = {
         file = "laser_emitter_ray.xml",
         name = "",
         path = "entities/misc/laser_emitter_ray.xml",
+        tags = "",
+    },
+    ["fast_movement_explosion"] = {
+        file = "fast_movement_explosion.xml",
+        name = "$projectile_default",
+        path = "entities/misc/fast_movement_explosion.xml",
         tags = "",
     },
     ["loose_chunks_projectile"] = {
@@ -6471,6 +6879,12 @@ misc = {
         name = "",
         path = "entities/misc/hitfx_tentacle_ray_enemy.xml",
         tags = "",
+    },
+    ["effect_spirit_berserk"] = {
+        file = "effect_spirit_berserk.xml",
+        name = "",
+        path = "entities/misc/effect_spirit_berserk.xml",
+        tags = "spirit_berserk",
     },
     ["physics_poltergeist_ai"] = {
         file = "physics_poltergeist_ai.xml",
@@ -6651,6 +7065,12 @@ misc = {
         name = "",
         path = "entities/misc/explosion_tiny.xml",
         tags = "",
+    },
+    ["effect_spirit_slime"] = {
+        file = "effect_spirit_slime.xml",
+        name = "",
+        path = "entities/misc/effect_spirit_slime.xml",
+        tags = "effect_slime",
     },
     ["hitfx_curse_wither_electricity"] = {
         file = "hitfx_curse_wither_electricity.xml",
@@ -7006,6 +7426,12 @@ misc = {
         path = "entities/misc/hitfx_curse_wither_melee.xml",
         tags = "",
     },
+    ["effect_weakness"] = {
+        file = "effect_weakness.xml",
+        name = "",
+        path = "entities/misc/effect_weakness.xml",
+        tags = "",
+    },
     ["effect_heart"] = {
         file = "effect_heart.xml",
         name = "",
@@ -7120,6 +7546,12 @@ misc = {
         path = "entities/misc/beam_from_sky.xml",
         tags = "",
     },
+    ["effect_spirit_weakness"] = {
+        file = "effect_spirit_weakness.xml",
+        name = "",
+        path = "entities/misc/effect_spirit_weakness.xml",
+        tags = "effect_weakness",
+    },
     ["effect_apply_bloody"] = {
         file = "effect_apply_bloody.xml",
         name = "",
@@ -7180,6 +7612,12 @@ misc = {
         path = "entities/misc/homing_short.xml",
         tags = "",
     },
+    ["mimic_potion_rain"] = {
+        file = "mimic_potion_rain.xml",
+        name = "",
+        path = "entities/misc/mimic_potion_rain.xml",
+        tags = "",
+    },
     ["perk_gamble_spawner"] = {
         file = "perk_gamble_spawner.xml",
         name = "",
@@ -7226,6 +7664,12 @@ misc = {
         file = "hitfx_burning_critical_hit.xml",
         name = "",
         path = "entities/misc/hitfx_burning_critical_hit.xml",
+        tags = "",
+    },
+    ["fish_rain"] = {
+        file = "fish_rain.xml",
+        name = "",
+        path = "entities/misc/fish_rain.xml",
         tags = "",
     },
     ["chest_rain"] = {
@@ -7288,6 +7732,12 @@ misc = {
         path = "entities/misc/effect_respawn.xml",
         tags = "",
     },
+    ["bounce_small_explosion"] = {
+        file = "bounce_small_explosion.xml",
+        name = "",
+        path = "entities/misc/bounce_small_explosion.xml",
+        tags = "",
+    },
     ["effect_protection_explosion"] = {
         file = "effect_protection_explosion.xml",
         name = "",
@@ -7340,6 +7790,12 @@ misc = {
         file = "colour_orange.xml",
         name = "",
         path = "entities/misc/colour_orange.xml",
+        tags = "",
+    },
+    ["bounce_lightning"] = {
+        file = "bounce_lightning.xml",
+        name = "",
+        path = "entities/misc/bounce_lightning.xml",
         tags = "",
     },
     ["fly_upwards"] = {
@@ -7606,6 +8062,12 @@ misc = {
         path = "entities/misc/custom_cards/grenade.xml",
         tags = "",
     },
+    ["clusterbomb"] = {
+        file = "clusterbomb.xml",
+        name = "",
+        path = "entities/misc/custom_cards/clusterbomb.xml",
+        tags = "",
+    },
     ["rocket_tier_3"] = {
         file = "rocket_tier_3.xml",
         name = "",
@@ -7840,6 +8302,18 @@ misc = {
         path = "entities/misc/custom_cards/charm.xml",
         tags = "",
     },
+    ["white_hole_giga"] = {
+        file = "white_hole_giga.xml",
+        name = "",
+        path = "entities/misc/custom_cards/white_hole_giga.xml",
+        tags = "",
+    },
+    ["white_hole"] = {
+        file = "white_hole.xml",
+        name = "",
+        path = "entities/misc/custom_cards/white_hole.xml",
+        tags = "",
+    },
     ["circleshot_a"] = {
         file = "circleshot_a.xml",
         name = "",
@@ -7893,6 +8367,12 @@ misc = {
         name = "",
         path = "entities/misc/custom_cards/action.xml",
         tags = "card_action",
+    },
+    ["touch_grass"] = {
+        file = "touch_grass.xml",
+        name = "",
+        path = "entities/misc/custom_cards/touch_grass.xml",
+        tags = "",
     },
     ["rocket"] = {
         file = "rocket.xml",
@@ -7996,6 +8476,12 @@ misc = {
         path = "entities/misc/custom_cards/worm_rain.xml",
         tags = "",
     },
+    ["lance_holy"] = {
+        file = "lance_holy.xml",
+        name = "",
+        path = "entities/misc/custom_cards/lance_holy.xml",
+        tags = "",
+    },
     ["midas"] = {
         file = "midas.xml",
         name = "",
@@ -8024,6 +8510,12 @@ misc = {
         file = "arc_fire.xml",
         name = "",
         path = "entities/misc/custom_cards/arc_fire.xml",
+        tags = "",
+    },
+    ["white_hole_big"] = {
+        file = "white_hole_big.xml",
+        name = "",
+        path = "entities/misc/custom_cards/white_hole_big.xml",
         tags = "",
     },
     ["thunderball"] = {
@@ -8592,6 +9084,12 @@ particles = {
         path = "entities/particles/tinyspark_blue_large.xml",
         tags = "",
     },
+    ["blue_glow"] = {
+        file = "blue_glow.xml",
+        name = "",
+        path = "entities/particles/blue_glow.xml",
+        tags = "",
+    },
     ["knockback_star"] = {
         file = "knockback_star.xml",
         name = "",
@@ -8914,6 +9412,12 @@ particles = {
         file = "poof_red_tiny.xml",
         name = "",
         path = "entities/particles/poof_red_tiny.xml",
+        tags = "",
+    },
+    ["necromancer_twirl_only"] = {
+        file = "necromancer_twirl_only.xml",
+        name = "",
+        path = "entities/particles/necromancer_twirl_only.xml",
         tags = "",
     },
     ["knockback"] = {
@@ -9352,6 +9856,12 @@ particles = {
         file = "explosion_flare_medium.xml",
         name = "",
         path = "entities/particles/particle_explosion/explosion_flare_medium.xml",
+        tags = "",
+    },
+    ["main_nospark_large"] = {
+        file = "main_nospark_large.xml",
+        name = "",
+        path = "entities/particles/particle_explosion/main_nospark_large.xml",
         tags = "",
     },
     ["main_swirly_blue_giga"] = {
@@ -10358,6 +10868,12 @@ projectiles = {
         path = "entities/projectiles/orb_pink_big.xml",
         tags = "resist_repulsion",
     },
+    ["sniperbullet_hell"] = {
+        file = "sniperbullet_hell.xml",
+        name = "$projectile_default",
+        path = "entities/projectiles/sniperbullet_hell.xml",
+        tags = "",
+    },
     ["orb_homing"] = {
         file = "orb_homing.xml",
         name = "$projectile_default",
@@ -10506,6 +11022,12 @@ projectiles = {
         file = "slimetrail.xml",
         name = "$projectile_default",
         path = "entities/projectiles/slimetrail.xml",
+        tags = "",
+    },
+    ["tnt_hell"] = {
+        file = "tnt_hell.xml",
+        name = "$projectile_default",
+        path = "entities/projectiles/tnt_hell.xml",
         tags = "",
     },
     ["levitation_trail"] = {
@@ -10904,6 +11426,12 @@ projectiles = {
         path = "entities/projectiles/deck/rocket_downwards.xml",
         tags = "projectile_player",
     },
+    ["sea_mimic"] = {
+        file = "sea_mimic.xml",
+        name = "$projectile_default",
+        path = "entities/projectiles/deck/sea_mimic.xml",
+        tags = "projectile_player",
+    },
     ["black_hole"] = {
         file = "black_hole.xml",
         name = "$projectile_default",
@@ -11132,6 +11660,12 @@ projectiles = {
         path = "entities/projectiles/deck/teleport_cast.xml",
         tags = "projectile_player",
     },
+    ["fish"] = {
+        file = "fish.xml",
+        name = "$projectile_default",
+        path = "entities/projectiles/deck/fish.xml",
+        tags = "mortal,prey,hittable,projectile_player",
+    },
     ["big_magic_shield_start"] = {
         file = "big_magic_shield_start.xml",
         name = "$projectile_default",
@@ -11240,6 +11774,12 @@ projectiles = {
         path = "entities/projectiles/deck/material_liquid.xml",
         tags = "projectile_player",
     },
+    ["hook"] = {
+        file = "hook.xml",
+        name = "$projectile_default",
+        path = "entities/projectiles/deck/hook.xml",
+        tags = "projectile_player",
+    },
     ["all_spells_base"] = {
         file = "all_spells_base.xml",
         name = "$projectile_default",
@@ -11274,6 +11814,12 @@ projectiles = {
         file = "super_teleport_cast.xml",
         name = "$projectile_default",
         path = "entities/projectiles/deck/super_teleport_cast.xml",
+        tags = "projectile_player",
+    },
+    ["sea_swamp"] = {
+        file = "sea_swamp.xml",
+        name = "$projectile_default",
+        path = "entities/projectiles/deck/sea_swamp.xml",
         tags = "projectile_player",
     },
     ["summon_portal_teleport"] = {
@@ -11438,6 +11984,12 @@ projectiles = {
         path = "entities/projectiles/deck/circle_acid.xml",
         tags = "projectile_player",
     },
+    ["mass_polymorph"] = {
+        file = "mass_polymorph.xml",
+        name = "",
+        path = "entities/projectiles/deck/mass_polymorph.xml",
+        tags = "projectile_player",
+    },
     ["megalaser"] = {
         file = "megalaser.xml",
         name = "$projectile_default",
@@ -11466,6 +12018,12 @@ projectiles = {
         file = "explosion_giga.xml",
         name = "$projectile_default",
         path = "entities/projectiles/deck/explosion_giga.xml",
+        tags = "projectile_player",
+    },
+    ["grenade_small"] = {
+        file = "grenade_small.xml",
+        name = "$projectile_default",
+        path = "entities/projectiles/deck/grenade_small.xml",
         tags = "projectile_player",
     },
     ["disc_bullet_big"] = {
@@ -11498,6 +12056,12 @@ projectiles = {
         path = "entities/projectiles/deck/touch_alcohol.xml",
         tags = "projectile_player",
     },
+    ["bounce_hole"] = {
+        file = "bounce_hole.xml",
+        name = "$projectile_default",
+        path = "entities/projectiles/deck/bounce_hole.xml",
+        tags = "projectile_player",
+    },
     ["grenade_large"] = {
         file = "grenade_large.xml",
         name = "$projectile_default",
@@ -11510,11 +12074,23 @@ projectiles = {
         path = "entities/projectiles/deck/charm_field.xml",
         tags = "",
     },
+    ["white_hole_giga"] = {
+        file = "white_hole_giga.xml",
+        name = "",
+        path = "entities/projectiles/deck/white_hole_giga.xml",
+        tags = "projectile_player,black_hole_giga,black_hole",
+    },
     ["sea_alcohol"] = {
         file = "sea_alcohol.xml",
         name = "$projectile_default",
         path = "entities/projectiles/deck/sea_alcohol.xml",
         tags = "projectile_player",
+    },
+    ["white_hole"] = {
+        file = "white_hole.xml",
+        name = "$projectile_default",
+        path = "entities/projectiles/deck/white_hole.xml",
+        tags = "projectile_player,black_hole",
     },
     ["cloud_acid"] = {
         file = "cloud_acid.xml",
@@ -11618,6 +12194,12 @@ projectiles = {
         path = "entities/projectiles/deck/regeneration_aura.xml",
         tags = "projectile_heal",
     },
+    ["touch_grass"] = {
+        file = "touch_grass.xml",
+        name = "",
+        path = "entities/projectiles/deck/touch_grass.xml",
+        tags = "projectile_player",
+    },
     ["rocket"] = {
         file = "rocket.xml",
         name = "$projectile_default",
@@ -11682,6 +12264,18 @@ projectiles = {
         file = "wall_vertical.xml",
         name = "$projectile_default",
         path = "entities/projectiles/deck/wall_vertical.xml",
+        tags = "projectile_player",
+    },
+    ["bounce_lightning_launcher"] = {
+        file = "bounce_lightning_launcher.xml",
+        name = "",
+        path = "entities/projectiles/deck/bounce_lightning_launcher.xml",
+        tags = "",
+    },
+    ["healhurt"] = {
+        file = "healhurt.xml",
+        name = "$projectile_default",
+        path = "entities/projectiles/deck/healhurt.xml",
         tags = "projectile_player",
     },
     ["spitter"] = {
@@ -11822,6 +12416,12 @@ projectiles = {
         path = "entities/projectiles/deck/swarm_wasp.xml",
         tags = "projectile_player,hittable,mortal,summon_player",
     },
+    ["white_hole_big"] = {
+        file = "white_hole_big.xml",
+        name = "$projectile_default",
+        path = "entities/projectiles/deck/white_hole_big.xml",
+        tags = "projectile_player,black_hole",
+    },
     ["tentacle_portal"] = {
         file = "tentacle_portal.xml",
         name = "",
@@ -11912,6 +12512,12 @@ projectiles = {
         path = "entities/projectiles/deck/grenade_tier_2.xml",
         tags = "projectile_player",
     },
+    ["bounce_small_explosion"] = {
+        file = "bounce_small_explosion.xml",
+        name = "$projectile_default",
+        path = "entities/projectiles/deck/bounce_small_explosion.xml",
+        tags = "projectile_player",
+    },
     ["freeze_field"] = {
         file = "freeze_field.xml",
         name = "$projectile_default",
@@ -11948,11 +12554,23 @@ projectiles = {
         path = "entities/projectiles/deck/disc_bullet.xml",
         tags = "projectile_player,disc_bullet",
     },
+    ["touch_piss"] = {
+        file = "touch_piss.xml",
+        name = "",
+        path = "entities/projectiles/deck/touch_piss.xml",
+        tags = "projectile_player",
+    },
     ["vacuum_powder"] = {
         file = "vacuum_powder.xml",
         name = "$projectile_default",
         path = "entities/projectiles/deck/vacuum_powder.xml",
         tags = "",
+    },
+    ["wall_sound"] = {
+        file = "wall_sound.xml",
+        name = "$projectile_default",
+        path = "entities/projectiles/deck/wall_sound.xml",
+        tags = "projectile_player",
     },
     ["pata_rocket_4"] = {
         file = "pata_rocket_4.xml",
@@ -12243,6 +12861,12 @@ props = {
         name = "",
         path = "entities/props/root_grower.xml",
         tags = "mortal,hittable,teleportable_NOT,destruction_target,root,glue_NOT",
+    },
+    ["meat_cyst"] = {
+        file = "meat_cyst.xml",
+        name = "",
+        path = "entities/props/meat_cyst.xml",
+        tags = "hittable,prop",
     },
     ["physics_fungus"] = {
         file = "physics_fungus.xml",
@@ -12946,6 +13570,12 @@ props = {
         path = "entities/props/furniture_wardrobe.xml",
         tags = "",
     },
+    ["suspended_cage"] = {
+        file = "suspended_cage.xml",
+        name = "",
+        path = "entities/props/suspended_cage.xml",
+        tags = "hittable,teleportable_NOT,prop,prop_physics,mortal",
+    },
     ["vault_machine_1"] = {
         file = "vault_machine_1.xml",
         name = "",
@@ -13017,6 +13647,12 @@ props = {
         name = "unknown",
         path = "entities/props/physics_campfire.xml",
         tags = "",
+    },
+    ["suspended_cage_broken"] = {
+        file = "suspended_cage_broken.xml",
+        name = "",
+        path = "entities/props/suspended_cage_broken.xml",
+        tags = "hittable,teleportable_NOT,prop,prop_physics,mortal",
     },
     ["rainforest_tree_03"] = {
         file = "rainforest_tree_03.xml",
@@ -13179,6 +13815,12 @@ props = {
         name = "",
         path = "entities/props/physics_darksun_rock.xml",
         tags = "darksunrock",
+    },
+    ["suspended_chain"] = {
+        file = "suspended_chain.xml",
+        name = "",
+        path = "entities/props/suspended_chain.xml",
+        tags = "hittable,teleportable_NOT,prop,prop_physics,mortal",
     },
     ["suspended_tank_radioactive"] = {
         file = "suspended_tank_radioactive.xml",
