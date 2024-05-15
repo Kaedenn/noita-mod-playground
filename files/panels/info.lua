@@ -241,9 +241,9 @@ InfoPanel._private_funcs._get_name = _get_name
 local function _get_health(entity)
     local comps = EntityGetComponentIncludingDisabled(entity, "DamageModelComponent") or {}
     if #comps == 0 then return nil end
-    -- FIXME: don't hard-code 25
-    local health = ComponentGetValue2(comps[1], "hp") * 25
-    local maxhealth = ComponentGetValue2(comps[1], "max_hp") * 25
+    local mult = MagicNumbersGetValue("GUI_HP_MULTIPLIER")
+    local health = ComponentGetValue2(comps[1], "hp") * mult
+    local maxhealth = ComponentGetValue2(comps[1], "max_hp") * mult
     return {health, maxhealth}
 end
 InfoPanel._private_funcs._get_health = _get_health
@@ -283,6 +283,8 @@ local function _distance_from(entity, reference)
     if reference == nil then reference = get_players()[1] end
     local rx, ry = EntityGetTransform(reference)
     local ex, ey = EntityGetTransform(entity)
+    if rx == nil or ry == nil then return 0 end
+    if ex == nil or ey == nil then return 0 end
     return math.sqrt(math.pow(rx-ex, 2) + math.pow(ry-ey, 2))
 end
 InfoPanel._private_funcs._distance_from = _distance_from
