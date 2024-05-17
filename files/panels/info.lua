@@ -878,6 +878,12 @@ function InfoPanel:_draw_spell_dropdown(imgui)
         self.env.manage_spells = false
     end
     imgui.SameLine()
+    if imgui.SmallButton("Save###spell_save") then
+        local data = smallfolk.dumps(self.env.spell_list)
+        self.host:set_var(self.id, "spell_list", data)
+        self.env.manage_spells = false
+    end
+    imgui.SameLine()
     _, self.env.spell_add_multi = imgui.Checkbox("Multi###spell_multi", self.env.spell_add_multi)
 
     if self.env.spell_text ~= "" then
@@ -948,6 +954,12 @@ function InfoPanel:_draw_material_dropdown(imgui)
         self.env.manage_materials = false
     end
     imgui.SameLine()
+    if imgui.SmallButton("Save###material_save") then
+        local data = smallfolk.dumps(self.env.material_list)
+        self.host:set_var(self.id, "material_list", data)
+        self.env.manage_materials = false
+    end
+    imgui.SameLine()
     _, self.env.material_add_multi = imgui.Checkbox("Multi###material_multi", self.env.material_add_multi)
 
     local kinds = {
@@ -998,11 +1010,17 @@ function InfoPanel:_draw_entity_dropdown(imgui)
     if not self.env.entity_text then self.env.entity_text = "" end
     local ret, text = false, self.env.entity_text
     imgui.SetNextItemWidth(400)
-    ret, text = imgui.InputText("Spell###entity_input", text)
+    ret, text = imgui.InputText("Entity###entity_input", text)
     if ret then self.env.entity_text = text end
     imgui.SameLine()
     if imgui.SmallButton("Done###entity_done") then
-        self.env.manage_entitys = false
+        self.env.manage_entities = false
+    end
+    imgui.SameLine()
+    if imgui.SmallButton("Save###entity_save") then
+        local data = smallfolk.dumps(self.env.entity_list)
+        self.host:set_var(self.id, "entity_list", data)
+        self.env.manage_entities = false
     end
     imgui.SameLine()
     _, self.env.entity_add_multi = imgui.Checkbox("Multi###entity_multi", self.env.entity_add_multi)
