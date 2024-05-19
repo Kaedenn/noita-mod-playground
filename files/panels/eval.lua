@@ -28,8 +28,11 @@ Environment:
   self.env            table for whatever
 --]]
 
+-- luacheck: globals clamp
 dofile_once("data/scripts/lib/utilities.lua")
 dofile_once("mods/kae_test/files/imguiutil.lua")
+-- luacheck: globals f_enable
+dofile_once("mods/kae_test/config.lua")
 
 kae = dofile_once("mods/kae_test/files/lib/libkae.lua")
 EZWand = dofile_once("mods/kae_test/files/lib/EZWand.lua")
