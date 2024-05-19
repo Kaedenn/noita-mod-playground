@@ -1,5 +1,6 @@
 dofile_once( "data/scripts/lib/utilities.lua" )
 dofile( "data/scripts/newgame_plus.lua")
+-- luacheck: globals ORB_COUNT_IN_WORLD do_newgame_plus
 
 local entity_id = GetUpdatedEntityID()
 local x, y = EntityGetTransform( entity_id )
@@ -48,8 +49,9 @@ end
 local enter_ngplus = false
 local force_ngplus = GlobalsGetValue("kae_test_force_ngplus", "")
 if force_ngplus == "1" then
-	GamePrint("Forcing New Game+")
+	GamePrintImportant("Forcing New Game+")
 	enter_ngplus = true
+	GlobalsSetValue("kae_test_force_ngplus", "")
 end
 
 local newgame_orbs_required = 5 + newgame_n
@@ -61,13 +63,6 @@ if orb_count < 33 then
 	end
 end
 
-if enter_ngplus then
-	GamePrint("Entering New Game+")
-else
-	GamePrint("Not entering New Game+")
-end
-
-function __DISABLED()
 if enter_ngplus then
 	local distance_from_mountain = 1000
 	--local distance_from_bottom = 1000
@@ -291,5 +286,4 @@ if( doing_newgame_plus == false ) then
 
 		end
 	end
-end
 end
