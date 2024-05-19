@@ -616,7 +616,7 @@ kae = {
 
     -- True if the table contains the given key, regardless of value
     has = function(tbl, key)
-      for table_key, _ in pairs(tb) do
+      for table_key, _ in pairs(tbl) do
         if table_key == key then
           return true
         end
@@ -674,11 +674,15 @@ kae = {
         table.sort(temp, sortfunc)
       end
       for idx, entry in pairs(temp) do
+        local vtype = entry.type
         local key = entry.name
         local val = entry.value
+        if conf.recurse and vtype == "table" then
+          val = ("[%s]"):format(kae.table.tostring(val, conf))
+        end
         local show = true
-        if conf.table and type(val) ~= "table" then show = false end
-        if conf.type and type(val) ~= conf.type then show = false end
+        if conf.table and vtype ~= "table" then show = false end
+        if conf.type and vtype ~= conf.type then show = false end
         if show then
           printfunc(formatfunc(name, key, val))
         end
@@ -830,7 +834,61 @@ kae = {
         return string.format("%s[%s] = %s", varname, index, val)
       end
       kae.table.print(tbl, iconf)
-    end
+    end,
+
+    -- Convert an array-like table of values to a single string
+    tostring = function(tbl, conf)
+      if not conf then conf = {} end
+      local iconf = {}
+      kae.table.merge(iconf, conf)
+      local entries = {}
+      iconf.iprint = true
+      iconf.printfunc = function(entry) table.insert(entries, entry) end
+      iconf.format = function(varname, index, val)
+        return {varname, index, val}
+      end
+      iconf.sortfunc = function(val1, val2)
+        return val1.name < val2.name
+      end
+
+      kae.table.print(tbl, iconf)
+
+      local formatfunc = conf.format or function(name, key, value)
+        local valstr = tostring(value)
+        if type(value) == "string" then
+          valstr = ("%q"):format(value)
+        end
+        return valstr
+      end
+
+      local indent = conf.indent or ""
+      local sep = conf.sep or ","
+
+      local lines = {}
+      for enr, entry in ipairs(entries) do
+        local varname = entry[1]
+        local tkey = entry[2]
+        local tvalue = entry[3]
+        local curr_sep = sep
+        if enr == #entries and not conf.sep_last then
+          curr_sep = ""
+        end
+        local line = ("%s%s%s"):format(
+          indent,
+          formatfunc(varname, tkey, tvalue),
+          curr_sep
+        )
+        table.insert(lines, line)
+      end
+
+      local afix_sep = conf.linesep or ""
+      return ("%s%s%s%s%s"):format(
+        conf.prefix or "{",
+        afix_sep,
+        table.concat(lines, conf.linesep or " "),
+        afix_sep,
+        conf.suffix or "}")
+    end,
   },
 
   -- [[ True if tbl is an array (lacks holes, lacks named keys) ]]
@@ -883,7 +941,7 @@ kae = {
     -- Escape a string
     escape = function(value, quote)
       if quote == nil then quote = '"' end
-      if is_keyword(value) then
+      if kae.string.is_keyword(value) then
         return ("%s%s%s"):format(quote, value, quote)
       end
       local escaped_chars = {}
@@ -914,12 +972,13 @@ kae = {
 
     -- True if the string contains only printable characters
     isprint = function(value)
+      local result = true
       for index, byte in kae.string.each(value, true) do
         if byte < 0x32 or byte >= 0x7f then
-          return false
+          result = false
         end
-        return true
       end
+      return result
     end,
 
   },
@@ -939,10 +998,10 @@ kae = {
     parse_frame = function(line)
       local file_line, func = line:match("^[%s]+(.*): in (.*)")
       if file_line and func then
-        local file, line = file_line:match("(.*):([%d]+)")
+        local file, linenr = file_line:match("(.*):([%d]+)")
         file = file or file_line
-        line = line or ""
-        return {file, line, func}
+        linenr = linenr or ""
+        return {file, linenr, func}
       end
       return nil
     end,
@@ -956,8 +1015,8 @@ kae = {
           if line:gmatch("stack traceback:") then
             block = 1
           else -- error message
-            local file, line, msg = line:match("([^:]+):([%d]+): (.*)")
-            table.insert(errors, {file, line, msg})
+            local file, line_nr, msg = line:match("([^:]+):([%d]+): (.*)")
+            table.insert(errors, {file, line_nr, msg})
           end
         else -- stack frame
           table.insert(frames, kae.debug.parse_frame(line))

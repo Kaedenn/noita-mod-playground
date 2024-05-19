@@ -70,7 +70,7 @@ function OnWorldPostUpdate()
             GamePrint("Failed KPanel:new(); init not defined")
         elseif not KPanel.initialized then
             KPanel:init(nil)
-            KPanel:set("info")
+            KPanel:set("eval")
         end
 
         if imgui.Begin("Kae", nil, bit.bor(
