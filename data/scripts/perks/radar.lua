@@ -1,4 +1,5 @@
 dofile_once("data/scripts/lib/utilities.lua")
+-- luacheck: globals get_magnitude vec_normalize is_in_camera_bounds
 
 -- These entities will not be considered by the radar
 local banned_entities = {
@@ -104,4 +105,4 @@ for enemy_id, info in pairs(radar_get_enemies(pos_x, pos_y, range, {"enemy", "mo
 	end
 end
 
--- vim: set ts=2 sts=2 sw=2 noet filetype=lua:
+-- vim: set ts=4 sts=4 sw=4 noet filetype=lua:
