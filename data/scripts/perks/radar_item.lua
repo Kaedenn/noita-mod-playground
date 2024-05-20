@@ -14,12 +14,17 @@ local sprites = {
 	"mods/kae_test/files/particles/radar_container_faint.png",
 	"mods/kae_test/files/particles/radar_container_medium.png",
 	"mods/kae_test/files/particles/radar_container_strong.png",
+	-- sprite base 10: chests
+	"mods/kae_test/files/particles/radar_chest_faint.png",
+	"mods/kae_test/files/particles/radar_chest_medium.png",
+	"mods/kae_test/files/particles/radar_chest_strong.png",
 }
 
 local sprite_bases = {
 	["item"] = 1,
 	["heart"] = 4,
 	["container"] = 7,
+	["chest"] = 10,
 }
 
 local entity_id = GetUpdatedEntityID()
@@ -36,6 +41,9 @@ function classify_item(entid)
 	end
 	if EntityHasTag(entid, "potion") or EntityHasTag(entid, "powder_stash") then
 		return "container"
+	end
+	if EntityHasTag(entid, "chest") then
+		return "chest"
 	end
 	return "item"
 end
