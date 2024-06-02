@@ -84,7 +84,7 @@ Panel.SAVE_KEY = MOD_ID .. "_current_panel"
 --[[ Built-in panels ]]
 PANELS_NATIVE = {
     dofile_once("mods/kae_test/files/panels/eval.lua"),
-    dofile_once("mods/kae_test/files/panels/info.lua"),
+    --dofile_once("mods/kae_test/files/panels/info.lua"),
     --dofile_once("mods/kae_test/files/panels/summon.lua"),
     --dofile_once("mods/kae_test/files/panels/radar.lua"),
     --dofile_once("mods/kae_test/files/panels_old/progress.lua"),
@@ -242,6 +242,7 @@ end
 function Panel:print(msg)
     self:p(msg)
     GamePrint(msg)
+    print(msg) -- Writes to logger.txt if logging is enabled
 end
 
 --[[ True if the given panel ID refers to a known Panel object ]]
@@ -350,23 +351,25 @@ function Panel:build_menu(imgui)
             conf_set(CONF.ENABLE, false)
         end
 
-        imgui.Separator()
+        if #self.PANELS > 1 then
+            imgui.Separator()
 
-        for pid, pobj in pairs(self.PANELS) do
-            local mstr = pobj.name
-            if pid == self.id_current then
-                mstr = mstr .. " [*]"
+            for pid, pobj in pairs(self.PANELS) do
+                local mstr = pobj.name
+                if pid == self.id_current then
+                    mstr = mstr .. " [*]"
+                end
+                if imgui.MenuItem(mstr) then
+                    self:set(pid)
+                end
             end
-            if imgui.MenuItem(mstr) then
-                self:set(pid)
-            end
-        end
 
-        imgui.Separator()
+            imgui.Separator()
 
-        if current ~= nil then
-            if imgui.MenuItem("Return") then
-                self:reset()
+            if current ~= nil then
+                if imgui.MenuItem("Return") then
+                    self:reset()
+                end
             end
         end
 
@@ -382,7 +385,9 @@ function Panel:build_menu(imgui)
 end
 
 --[[ Private: draw a line to the feedback box ]]
-function Panel:_draw_line(imgui, line)
+function Panel:_draw_line(imgui, line, show_images, show_color)
+    if show_images == nil then show_images = true end
+    if show_color == nil then show_color = true end
     if type(line) == "table" then
         local level = line.level or nil
         local color = line.color or nil
@@ -390,21 +395,30 @@ function Panel:_draw_line(imgui, line)
             color = self.colors[level] or nil
         end
 
-        if color ~= nil then
+        if color ~= nil and show_color then
             if type(color) == "string" then
                 color = self.colors.names[color] or {1, 1, 1}
             end
             imgui.PushStyleColor(imgui.Col.Text, unpack(color))
         end
+
+        if line.image and show_images then
+            local img = imgui.LoadImage(line.image)
+            if img then
+                imgui.Image(img, line.width or img.width, line.height or img.height)
+                imgui.SameLine()
+            end
+        end
+
         for idx, token in ipairs(line) do
             if idx ~= 1 then imgui.SameLine() end
             if level ~= nil then
                 imgui.Text(("%s:"):format(level))
                 imgui.SameLine()
             end
-            self:_draw_line(imgui, token)
+            self:_draw_line(imgui, token, show_images, show_color)
         end
-        if color ~= nil then
+        if color ~= nil and show_color then
             imgui.PopStyleColor()
         end
     elseif line == self.separator then
@@ -444,8 +458,10 @@ function Panel:draw(imgui)
         imgui.PopID()
     end
 
+    local show_images = ModSettingGet(MOD_ID .. ".show_images")
+    local show_color = ModSettingGet(MOD_ID .. ".color")
     for _, line in ipairs(self.lines) do
-        self:_draw_line(imgui, line)
+        self:_draw_line(imgui, line, show_images, show_color)
     end
 end
 
