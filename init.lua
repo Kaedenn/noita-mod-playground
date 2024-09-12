@@ -76,7 +76,7 @@ function OnWorldPostUpdate()
         if imgui.Begin("Kae", nil, bit.bor(
             --imgui.WindowFlags.NoFocusOnAppearing,
             --imgui.WindowFlags.NoNavInputs,
-            --imgui.WindowFlags.HorizontalScrollbar,
+            imgui.WindowFlags.HorizontalScrollbar,
             imgui.WindowFlags.MenuBar
             ))
         then
